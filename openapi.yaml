@@ -4,33 +4,9 @@ info:
   description: Comprehensive Twitter automation and management platform API.
   version: 1.0.0
 servers:
-- url: http://localhost:8080/api/v1
-  description: Development server
-tags:
-- name: Tasks
-  description: Task management and execution
-- name: Account Management
-  description: Twitter account CRUD operations (create, read, update, delete)
-- name: Account Messages
-  description: Direct message (DM) operations for Twitter accounts
-- name: Account Actions
-  description: Twitter actions (follow, like, tweet, retweet, reply, quote)
-- name: Farming
-  description: Account farming and engagement automation
-- name: Configuration
-  description: System configuration management (AI, Proxy, Account, HTTP Server settings)
-- name: AI
-  description: AI service integration and prompt operations
-- name: System
-  description: System status and health
-- name: Data
-  description: Data fetching services
-- name: Proxies
-  description: Proxy pool management
-- name: RSS
-  description: RSS feed to Twitter automation
-- name: Batch Operations
-  description: Bulk account operations (add/remove tags, change proxy, update status, delete)
+  - url: http://localhost:8080/api/v1
+    description: Current server
+
 paths:
   /accounts/{username}/follow:
     post:
@@ -688,6 +664,9 @@ paths:
                     format: int64
                   - type: string
                   description: Tweet ID to quote (as integer or string)
+                tweet_username:
+                  type: string
+                  description: Username of the tweet author (Required if using tweet_id)
                 tweet_url:
                   type: string
                   description: Tweet URL to quote
@@ -695,6 +674,7 @@ paths:
               - required:
                 - text
                 - tweet_id
+                - tweet_username
               - required:
                 - text
                 - tweet_url
@@ -703,6 +683,7 @@ paths:
                 value:
                   text: Adding my thoughts on this...
                   tweet_id: 1234567890123456789
+                  tweet_username: elonmusk
               byTweetUrl:
                 value:
                   text: This is important!
@@ -868,6 +849,56 @@ paths:
         description: Search filter for username or email
         schema:
           type: string
+      - name: min_followers
+        in: query
+        description: Filter by minimum number of followers
+        schema:
+          type: integer
+      - name: max_followers
+        in: query
+        description: Filter by maximum number of followers
+        schema:
+          type: integer
+      - name: min_following
+        in: query
+        description: Filter by minimum number of following
+        schema:
+          type: integer
+      - name: max_following
+        in: query
+        description: Filter by maximum number of following
+        schema:
+          type: integer
+      - name: min_tweets
+        in: query
+        description: Filter by minimum number of tweets
+        schema:
+          type: integer
+      - name: max_tweets
+        in: query
+        description: Filter by maximum number of tweets
+        schema:
+          type: integer
+      - name: min_account_age
+        in: query
+        description: Filter by minimum account age in days
+        schema:
+          type: integer
+      - name: is_verified
+        in: query
+        description: Filter by verified status
+        schema:
+          type: boolean
+      - name: has_profile_pic
+        in: query
+        description: Filter by profile picture existence
+        schema:
+          type: boolean
+      - name: has_bio
+        in: query
+        description: Filter by bio existence
+        schema:
+          type: boolean
       - name: page
         in: query
         description: Page number for pagination (used with limit)
@@ -1559,8 +1590,89 @@ paths:
           description: Invalid account ID format
         '404':
           description: Account not found
+  /accounts/{id}/unlock:
+    post:
+      tags:
+      - Account Management
+      summary: Start account unlock process
+      description: 'Start the unlock process for a locked/suspended account in the background.
+
+        If the process is already running, returns 409 Conflict.
+
+        '
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Account ID to unlock
+        schema:
+          type: integer
+      responses:
+        '202':
+          description: Unlock process started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_id:
+                    type: integer
+                  status:
+                    type: string
+                    example: RUNNING
+                  message:
+                    type: string
+                    example: Unlock process started in background
+        '400':
+          description: Invalid account ID
+        '404':
+          description: Account not found
+        '409':
+          description: Unlock process already running
+    get:
+      tags:
+      - Account Management
+      summary: Get unlock process status
+      description: Check the status of a running or completed unlock process
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Account ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_id:
+                    type: integer
+                  status:
+                    type: string
+                    enum:
+                    - NONE
+                    - RUNNING
+                    - SUCCESS
+                    - FAILED
+                  message:
+                    type: string
+                  start_time:
+                    type: integer
+                    format: int64
+                  end_time:
+                    type: integer
+                    format: int64
+                  duration_seconds:
+                    type: integer
+                    description: Duration of the process (if finished)
+        '400':
+          description: Invalid account ID
         '500':
-          description: Failed to retrieve task history
+          description: Failed to retrieve status
   /accounts/{username}/messages:
     get:
       tags:
@@ -2037,6 +2149,7 @@ paths:
           - REMOVE_TAG
           - CHANGE_PROXY
           - DELETE_ACCOUNTS
+          - UPDATE_PROFILE
           - FOLLOW_USER
           - UNFOLLOW_USER
           - LIKE_TWEET
@@ -2048,6 +2161,8 @@ paths:
           - REPLY_TWEET
           - JOIN_COMMUNITY
           - LEAVE_COMMUNITY
+          - START_FARMING
+          - STOP_FARMING
       responses:
         '200':
           description: List of batch operations
@@ -2084,6 +2199,12 @@ paths:
 
         - DELETE_ACCOUNTS: Delete accounts
 
+        - UPDATE_PROFILE: Update account profile (name, bio, avatar, etc.)
+
+        - START_FARMING: Start automated farming for accounts
+
+        - STOP_FARMING: Stop automated farming for accounts
+
         - FOLLOW_USER/UNFOLLOW_USER: Follow or unfollow a user
 
         - LIKE_TWEET/UNLIKE_TWEET: Like or unlike a tweet
@@ -2100,6 +2221,8 @@ paths:
 
 
         Operations with 5+ items run in parallel using a thread pool.
+
+        Supports selecting all accounts (optionally filtered by tag) using `select_all: true`.
 
         '
       requestBody:
@@ -2121,6 +2244,16 @@ paths:
                   - 5
                   data:
                     tag: vip
+              add_tag_all:
+                summary: Add tag to ALL accounts with filtering
+                value:
+                  operation: ADD_TAG
+                  select_all: true
+                  excluded_ids:
+                  - 99
+                  tag_filter: active_users
+                  data:
+                    tag: vip_plus
               remove_tag:
                 summary: Remove tag from accounts
                 value:
@@ -2141,15 +2274,26 @@ paths:
                   - 12
                   data:
                     proxy: user:pass@proxy.com:8080
-              update_status:
-                summary: Update account status
+              update_profile:
+                summary: Update profile for accounts
                 value:
+                  operation: UPDATE_PROFILE
                   account_ids:
-                  - 5
-                  - 6
-                  - 7
+                  - 1
+                  - 2
                   data:
-                    status: PENDING
+                    bio: Crypto enthusiast 🚀
+                    website: https://example.com
+              start_farming:
+                summary: Start farming for multiple accounts
+                value:
+                  operation: START_FARMING
+                  select_all: true
+                  tag_filter: farmers
+                  data:
+                    config:
+                      likesPerHour: 15
+                      followsPerHour: 5
               delete_accounts:
                 summary: Delete accounts
                 value:
@@ -4874,6 +5018,9 @@ components:
         email:
           type: string
           description: Account email address
+        email_password:
+          type: string
+          description: Email password
         status:
           type: string
           enum:
@@ -4923,6 +5070,9 @@ components:
         password:
           type: string
           description: Account password
+        email_password:
+          type: string
+          description: Email password
         email:
           type: string
           description: Account email address
@@ -4931,20 +5081,27 @@ components:
           description: 2FA/TOTP code for account setup
         cookie:
           type: string
-          description: 'Cookie string containing authentication tokens. Supports two formats:
+          description: 'Cookie string containing authentication tokens. Supports multiple formats:
 
-            - **JSON**: `{"auth_token": "abc123", "ct0": "xyz789", "guest_id": "..."}`
+            - **JSON**: `{"auth_token": "abc123", "ct0": "xyz789"}`
 
-            - **Key-Value**: `auth_token=abc123; ct0=xyz789; guest_id=...`
+            - **Key-Value (semicolon)**: `auth_token=abc123; ct0=xyz789`
+
+            - **Key-Value (ampersand)**: `auth_token=abc123&ct0=xyz789`
 
 
-            **Required**: Must contain ''auth_token'' field. Keys are case-insensitive and automatically converted to lowercase.
+            **Required**: Only `auth_token` is required. `ct0` is optional and will be auto-generated if not provided.
 
             '
-          example: auth_token=abc123xyz; ct0=def456uvw; guest_id=v1%3A123456789
+          example: auth_token=e60325c7c48ac45c8e297235ab1b392415987093
         proxy:
-          $ref: '#/components/schemas/ProxyRequest'
-          description: Inline proxy configuration (alternative to proxy_id)
+          description: Inline proxy configuration (alternative to proxy_id). Supports object or string.
+          oneOf:
+          - $ref: '#/components/schemas/ProxyRequest'
+          - type: string
+            description: 'Proxy string formats: ''ip:port:user:pass'', ''ip:port'', ''http://user:pass@ip:port'''
+            example: 192.168.1.1:8080:user:pass
+          nullable: true
         proxy_id:
           type: integer
           description: ID of proxy to assign to this account
@@ -4961,15 +5118,15 @@ components:
           type: string
           description: Display name for the account
       description: "Create a new Twitter account. Either 'cookie' or 'password' is required.\n\n**Authentication Methods:**\n\
-        - **Cookie-based**: Provide 'cookie' field with auth_token\n- **Password-based**: Provide 'password' field (cookie\
-        \ will be empty)\n\n**Cookie Formats (auth_token REQUIRED):**\n- **JSON Format**: `{\"auth_token\":\"abc123\",\"ct0\"\
-        :\"xyz789\",\"guest_id\":\"...\"}`\n  - Must be valid JSON object\n  - Must contain 'auth_token' key\n- **Key-Value\
-        \ Format**: `auth_token=abc123; ct0=xyz789; guest_id=...`\n  - Semicolon-separated key=value pairs\n  - Automatically\
-        \ converted to JSON internally\n  - Keys are normalized to lowercase\n  - Each pair must have exactly one '=' character\n\
-        \n**Common Cookie Fields:**\n- `auth_token` - Required for authentication\n- `ct0` - CSRF token\n- `guest_id` - Guest\
-        \ session identifier\n- `twid` - Twitter user ID\n\n**Proxy Assignment:**\n- **Manual**: Set 'proxy_id' to existing\
-        \ proxy ID\n- **Inline**: Provide 'proxy' object to create new proxy\n- **Auto**: Set 'auto_assign_proxy: true' to\
-        \ auto-assign free proxy\n"
+        - **Cookie-based**: Provide 'cookie' field with auth_token (ct0 optional)\n- **Password-based**: Provide 'password'\
+        \ field\n\n**Cookie Formats (only auth_token REQUIRED):**\n- **JSON Format**: `{\"auth_token\":\"abc123\"}` or `{\"\
+        auth_token\":\"abc123\",\"ct0\":\"xyz789\"}`\n  - Must be valid JSON object\n  - Only 'auth_token' is required\n \
+        \ - ct0 will be auto-generated if not provided\n- **Key-Value Format (semicolon)**: `auth_token=abc123` or `auth_token=abc123;\
+        \ ct0=xyz789`\n- **Key-Value Format (ampersand)**: `auth_token=abc123` or `auth_token=abc123&ct0=xyz789`\n  - Automatically\
+        \ converted to JSON internally\n  - Keys are normalized to lowercase\n\n**Cookie Fields:**\n- `auth_token` - **Required**\
+        \ for authentication\n- `ct0` - **Optional** CSRF token (auto-generated if not provided)\n\n**Proxy Assignment:**\n\
+        - **Manual**: Set 'proxy_id' to existing proxy ID\n- **Inline**: Provide 'proxy' object to create new proxy\n- **Auto**:\
+        \ Set 'auto_assign_proxy: true' to auto-assign free proxy\n"
     BulkAccountResponse:
       type: object
       properties:
@@ -5122,6 +5279,8 @@ components:
           - REMOVE_TAG
           - CHANGE_PROXY
           - DELETE_ACCOUNTS
+          - UNLOCK_ACCOUNT
+          - UPDATE_PROFILE
           - FOLLOW_USER
           - UNFOLLOW_USER
           - LIKE_TWEET
@@ -5131,8 +5290,11 @@ components:
           - TWEET
           - QUOTE_TWEET
           - REPLY_TWEET
+          - TWEET_COMMUNITY
           - JOIN_COMMUNITY
           - LEAVE_COMMUNITY
+          - START_FARMING
+          - STOP_FARMING
           description: Type of batch operation
         status:
           type: string
@@ -5167,7 +5329,6 @@ components:
       type: object
       required:
       - operation
-      - account_ids
       properties:
         operation:
           type: string
@@ -5176,6 +5337,8 @@ components:
           - REMOVE_TAG
           - CHANGE_PROXY
           - DELETE_ACCOUNTS
+          - UNLOCK_ACCOUNT
+          - UPDATE_PROFILE
           - FOLLOW_USER
           - UNFOLLOW_USER
           - LIKE_TWEET
@@ -5185,14 +5348,29 @@ components:
           - TWEET
           - QUOTE_TWEET
           - REPLY_TWEET
+          - TWEET_COMMUNITY
           - JOIN_COMMUNITY
           - LEAVE_COMMUNITY
+          - START_FARMING
+          - STOP_FARMING
           description: Type of operation to perform
         account_ids:
           type: array
           items:
             type: integer
-          description: List of account IDs to process
+          description: List of account IDs to process (required if select_all is false or missing)
+        select_all:
+          type: boolean
+          default: false
+          description: If true, selects all accounts (filtered by tag_filter and excluded_ids).
+        excluded_ids:
+          type: array
+          items:
+            type: integer
+          description: List of account IDs to exclude when select_all is true.
+        tag_filter:
+          type: string
+          description: Optional tag to filter accounts when select_all is true.
         data:
           type: object
           description: 'Operation-specific data:
@@ -5204,6 +5382,11 @@ components:
 
             - DELETE_ACCOUNTS: {}
 
+            - UNLOCK_ACCOUNT: {}
+
+            - UPDATE_PROFILE: { "name": "string", "bio": "string", "location": "string", "website": "string", "avatar": "base64_string",
+            "banner": "base64_string" }
+
             - FOLLOW_USER/UNFOLLOW_USER: { "user_id": "string (username or numeric user ID)" }
 
             - LIKE_TWEET/UNLIKE_TWEET/RETWEET/UNRETWEET: { "tweet_id": "string" }
@@ -5214,7 +5397,13 @@ components:
 
             - REPLY_TWEET: { "text": "string", "tweet_id": "string" }
 
+            - TWEET_COMMUNITY: { "text": "string", "community_id": "string" }
+
             - JOIN_COMMUNITY/LEAVE_COMMUNITY: { "community_id": "string" }
+
+            - START_FARMING: { "config": { ...FarmingConfig object... } }
+
+            - STOP_FARMING: {}
 
             '
         delay_ms:
@@ -5258,6 +5447,8 @@ components:
           - REMOVE_TAG
           - CHANGE_PROXY
           - DELETE_ACCOUNTS
+          - UNLOCK_ACCOUNT
+          - UPDATE_PROFILE
           - FOLLOW_USER
           - UNFOLLOW_USER
           - LIKE_TWEET
@@ -5267,8 +5458,11 @@ components:
           - TWEET
           - QUOTE_TWEET
           - REPLY_TWEET
+          - TWEET_COMMUNITY
           - JOIN_COMMUNITY
           - LEAVE_COMMUNITY
+          - START_FARMING
+          - STOP_FARMING
         status:
           type: string
           enum:
