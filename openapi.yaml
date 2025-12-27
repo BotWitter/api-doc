@@ -4,9 +4,37 @@ info:
   description: Comprehensive Twitter automation and management platform API.
   version: 1.0.0
 servers:
-  - url: http://localhost:8080/api/v1
-    description: Current server
-
+- url: http://localhost:8080/api/v1
+  description: Development server
+tags:
+- name: Tasks
+  description: Task management and execution
+- name: Account Management
+  description: Twitter account CRUD operations (create, read, update, delete)
+- name: Account Messages
+  description: Direct message (DM) operations for Twitter accounts
+- name: Account Actions
+  description: Twitter actions (follow, like, tweet, retweet, reply, quote)
+- name: Farming
+  description: Account farming and engagement automation
+- name: Configuration
+  description: System configuration management (AI, Proxy, Account, HTTP Server settings)
+- name: AI
+  description: AI service integration and prompt operations
+- name: System
+  description: System status and health
+- name: Data
+  description: Data fetching services
+- name: Proxies
+  description: Proxy pool management
+- name: RSS
+  description: RSS feed to Twitter automation
+- name: Batch Operations
+  description: Bulk account operations (add/remove tags, change proxy, update status, delete)
+- name: Workflows
+  description: Workflow automation engine
+- name: Workflow Schedules
+  description: Cron-based workflow scheduling
 paths:
   /accounts/{username}/follow:
     post:
@@ -557,8 +585,57 @@ paths:
           description: Invalid request or unretweet action failed
         '404':
           description: Account not found
+  /accounts/{username}/report:
+    post:
+      tags:
+      - Account Actions
+      summary: Report a user
+      description: Report a Twitter user by user ID
+      parameters:
+      - name: username
+        in: path
+        required: true
+        description: Twitter account username that will perform the report action
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - user_id
+              properties:
+                user_id:
+                  type: integer
+                  format: int64
+                  description: Target user ID to report
+            examples:
+              byUserId:
+                value:
+                  user_id: 123456789
+      responses:
+        '200':
+          description: User reported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user_id:
+                    type: integer
+                    format: int64
+        '400':
+          description: Invalid request or report action failed
+        '404':
+          description: Account not found
         '500':
-          description: Failed to remove retweet
+          description: Failed to report user
   /accounts/{username}/reply:
     post:
       tags:
@@ -1673,6 +1750,122 @@ paths:
           description: Invalid account ID
         '500':
           description: Failed to retrieve status
+  /accounts/{id}/following:
+    get:
+      tags:
+      - Account Management
+      summary: Get account following list
+      description: Retrieve the list of users that this account follows on Twitter
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Account ID (local database ID)
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Number of users to fetch
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Following list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardSuccessResponse'
+              example:
+                success: true
+                data:
+                  users:
+                  - id: '12345'
+                    screen_name: example_user
+                    name: Example User
+                    followers_count: 1000
+                  count: 1
+                meta:
+                  timestamp: '2025-12-21T04:21:00.123Z'
+                  path: /api/v1/accounts/1/following
+        '400':
+          description: Invalid parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: External service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+  /accounts/{id}/followers:
+    get:
+      tags:
+      - Account Management
+      summary: Get account followers list
+      description: Retrieve the list of users that follow this account on Twitter
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Account ID (local database ID)
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Number of users to fetch
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Followers list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardSuccessResponse'
+              example:
+                success: true
+                data:
+                  users:
+                  - id: '12345'
+                    screen_name: example_follower
+                    name: Example Follower
+                    followers_count: 500
+                  count: 1
+                meta:
+                  timestamp: '2025-12-21T04:21:00.123Z'
+                  path: /api/v1/accounts/1/followers
+        '400':
+          description: Invalid parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: External service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
   /accounts/{username}/messages:
     get:
       tags:
@@ -2163,6 +2356,7 @@ paths:
           - LEAVE_COMMUNITY
           - START_FARMING
           - STOP_FARMING
+          - REPORT_USER
       responses:
         '200':
           description: List of batch operations
@@ -2174,7 +2368,7 @@ paths:
                   $ref: '#/components/schemas/BatchOperation'
               example:
               - id: 1
-                batch_id: 550e8400-e29b-41d4-a716-446655440000
+                batch_id: 1
                 operation_type: ADD_TAG
                 status: COMPLETED
                 total_count: 10
@@ -2219,6 +2413,8 @@ paths:
 
         - JOIN_COMMUNITY/LEAVE_COMMUNITY: Join or leave a community
 
+        - REPORT_USER: Report a Twitter user
+
 
         Operations with 5+ items run in parallel using a thread pool.
 
@@ -2251,7 +2447,10 @@ paths:
                   select_all: true
                   excluded_ids:
                   - 99
-                  tag_filter: active_users
+                  filters:
+                    tags: active_users
+                    status: Active
+                    min_followers: 100
                   data:
                     tag: vip_plus
               remove_tag:
@@ -2289,7 +2488,9 @@ paths:
                 value:
                   operation: START_FARMING
                   select_all: true
-                  tag_filter: farmers
+                  filters:
+                    tags: farmers
+                    status: Active
                   data:
                     config:
                       likesPerHour: 15
@@ -2402,6 +2603,19 @@ paths:
                     text: Thanks for sharing this!
                     tweet_id: '1234567890123456789'
                   delay_ms: 8000
+              report_user:
+                summary: Multiple accounts report a user
+                value:
+                  operation: REPORT_USER
+                  account_ids:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                  - 5
+                  data:
+                    user_id: '123456789'
+                  delay_ms: 5000
       responses:
         '201':
           description: Batch operation started successfully
@@ -2428,9 +2642,9 @@ paths:
       - name: id
         in: path
         required: true
-        description: Batch operation UUID
+        description: Batch operation ID
         schema:
-          type: string
+          type: integer
       responses:
         '200':
           description: Batch operation details
@@ -2439,7 +2653,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/BatchOperationDetail'
               example:
-                batch_id: 550e8400-e29b-41d4-a716-446655440000
+                batch_id: 1
                 operation_type: ADD_TAG
                 status: RUNNING
                 total_count: 5
@@ -2492,9 +2706,9 @@ paths:
       - name: id
         in: path
         required: true
-        description: Batch operation UUID
+        description: Batch operation ID
         schema:
-          type: string
+          type: integer
       responses:
         '200':
           description: Batch operation cancelled
@@ -2504,13 +2718,13 @@ paths:
                 type: object
                 properties:
                   batch_id:
-                    type: string
+                    type: integer
                   status:
                     type: string
                   message:
                     type: string
               example:
-                batch_id: 550e8400-e29b-41d4-a716-446655440000
+                batch_id: 1
                 status: CANCELLED
                 message: Batch operation cancelled successfully
         '400':
@@ -2525,9 +2739,9 @@ paths:
       - name: id
         in: path
         required: true
-        description: Batch operation UUID
+        description: Batch operation ID
         schema:
-          type: string
+          type: integer
       responses:
         '200':
           description: Batch operation paused
@@ -2537,13 +2751,13 @@ paths:
                 type: object
                 properties:
                   batch_id:
-                    type: string
+                    type: integer
                   status:
                     type: string
                   message:
                     type: string
               example:
-                batch_id: 550e8400-e29b-41d4-a716-446655440000
+                batch_id: 1
                 status: PAUSED
                 message: Batch operation paused successfully
         '400':
@@ -2558,9 +2772,9 @@ paths:
       - name: id
         in: path
         required: true
-        description: Batch operation UUID
+        description: Batch operation ID
         schema:
-          type: string
+          type: integer
       responses:
         '200':
           description: Batch operation resumed
@@ -2570,7 +2784,7 @@ paths:
                 type: object
                 properties:
                   batch_id:
-                    type: string
+                    type: integer
                   status:
                     type: string
                   message:
@@ -2591,9 +2805,9 @@ paths:
       - name: id
         in: path
         required: true
-        description: Batch operation UUID
+        description: Batch operation ID
         schema:
-          type: string
+          type: integer
       responses:
         '200':
           description: Batch operation permanently deleted
@@ -2603,11 +2817,11 @@ paths:
                 type: object
                 properties:
                   batch_id:
-                    type: string
+                    type: integer
                   message:
                     type: string
               example:
-                batch_id: 550e8400-e29b-41d4-a716-446655440000
+                batch_id: 1
                 message: Batch operation permanently deleted
         '400':
           description: Failed to delete batch operation
@@ -5004,6 +5218,467 @@ paths:
           description: Task resumed successfully
         '404':
           description: Task not found
+  /api/v1/workflows:
+    get:
+      tags:
+      - Workflows
+      summary: List all workflows
+      description: Retrieve a list of all registered workflows
+      operationId: getWorkflows
+      responses:
+        '200':
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workflow'
+    post:
+      tags:
+      - Workflows
+      summary: Create a new workflow
+      description: Create a new workflow from JSON definition
+      operationId: createWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowDefinition'
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          description: Invalid workflow definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/workflows/stats:
+    get:
+      tags:
+      - Workflows
+      summary: Get workflow engine statistics
+      description: Get statistics about the workflow engine
+      operationId: getWorkflowStats
+      responses:
+        '200':
+          description: Workflow engine statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalWorkflows:
+                    type: integer
+                    description: Total number of workflows
+                  pendingWorkflows:
+                    type: integer
+                    description: Number of pending workflows
+                  runningWorkflows:
+                    type: integer
+                    description: Number of running workflows
+                  completedWorkflows:
+                    type: integer
+                    description: Number of completed workflows
+                  failedWorkflows:
+                    type: integer
+                    description: Number of failed workflows
+  /api/v1/workflows/{id}:
+    get:
+      tags:
+      - Workflows
+      summary: Get workflow by ID
+      description: Retrieve a specific workflow by its ID
+      operationId: getWorkflowById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: Workflow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+      - Workflows
+      summary: Update workflow
+      description: Update an existing workflow (not yet implemented)
+      operationId: updateWorkflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowDefinition'
+      responses:
+        '501':
+          description: Not implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Workflows
+      summary: Delete workflow
+      description: Delete a workflow by ID
+      operationId: deleteWorkflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: Workflow deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: integer
+        '400':
+          description: Cannot delete (workflow may be running)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/workflows/{id}/start:
+    post:
+      tags:
+      - Workflows
+      summary: Start workflow
+      description: Start execution of a workflow
+      operationId: startWorkflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: Workflow started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+  /api/v1/workflows/{id}/pause:
+    post:
+      tags:
+      - Workflows
+      summary: Pause workflow
+      description: Pause a running workflow
+      operationId: pauseWorkflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: Workflow paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+  /api/v1/workflows/{id}/resume:
+    post:
+      tags:
+      - Workflows
+      summary: Resume workflow
+      description: Resume a paused workflow
+      operationId: resumeWorkflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: Workflow resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+  /api/v1/workflows/{id}/cancel:
+    post:
+      tags:
+      - Workflows
+      summary: Cancel workflow
+      description: Cancel a running or paused workflow
+      operationId: cancelWorkflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: Workflow cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+  /api/v1/workflows/schedules:
+    get:
+      tags:
+      - Workflow Schedules
+      summary: List all schedules
+      description: Retrieve all workflow schedules
+      operationId: getAllSchedules
+      responses:
+        '200':
+          description: List of schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schedule'
+  /api/v1/workflows/{id}/schedules:
+    get:
+      tags:
+      - Workflow Schedules
+      summary: Get schedules for workflow
+      description: Get all schedules for a specific workflow
+      operationId: getWorkflowSchedules
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      responses:
+        '200':
+          description: List of schedules for the workflow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schedule'
+    post:
+      tags:
+      - Workflow Schedules
+      summary: Add schedule to workflow
+      description: Create a new schedule for a workflow
+      operationId: addSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Workflow ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - cron_expression
+              properties:
+                cron_expression:
+                  type: string
+                  description: Cron expression (minute hour day month weekday)
+                  example: 0 12 * * *
+                name:
+                  type: string
+                  description: Optional schedule name
+                  example: Daily at noon
+                enabled:
+                  type: boolean
+                  default: true
+                  description: Whether the schedule is enabled
+      responses:
+        '201':
+          description: Schedule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '400':
+          description: Invalid schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/workflows/schedules/{id}:
+    put:
+      tags:
+      - Workflow Schedules
+      summary: Update schedule
+      description: Update an existing schedule
+      operationId: updateSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Schedule ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cron_expression:
+                  type: string
+                  description: Cron expression
+                name:
+                  type: string
+                  description: Schedule name
+                enabled:
+                  type: boolean
+                  description: Whether the schedule is enabled
+      responses:
+        '200':
+          description: Schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Workflow Schedules
+      summary: Delete schedule
+      description: Delete a schedule
+      operationId: deleteSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Schedule ID
+      responses:
+        '200':
+          description: Schedule deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  message:
+                    type: string
+  /api/v1/workflows/schedules/{id}/enable:
+    post:
+      tags:
+      - Workflow Schedules
+      summary: Enable schedule
+      description: Enable a schedule
+      operationId: enableSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Schedule ID
+      responses:
+        '200':
+          description: Schedule enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  enabled:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/workflows/schedules/{id}/disable:
+    post:
+      tags:
+      - Workflow Schedules
+      summary: Disable schedule
+      description: Disable a schedule
+      operationId: disableSchedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Schedule ID
+      responses:
+        '200':
+          description: Schedule disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  enabled:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     Account:
@@ -5270,8 +5945,8 @@ components:
           type: integer
           description: Database ID
         batch_id:
-          type: string
-          description: Unique batch operation UUID
+          type: integer
+          description: Unique batch operation ID
         operation_type:
           type: string
           enum:
@@ -5362,15 +6037,61 @@ components:
         select_all:
           type: boolean
           default: false
-          description: If true, selects all accounts (filtered by tag_filter and excluded_ids).
+          description: If true, selects all accounts (can be filtered using 'filters' object).
         excluded_ids:
           type: array
           items:
             type: integer
           description: List of account IDs to exclude when select_all is true.
-        tag_filter:
-          type: string
-          description: Optional tag to filter accounts when select_all is true.
+        filters:
+          type: object
+          description: Account filter criteria (only used when select_all is true). Same filters as GET /accounts endpoint.
+          properties:
+            filter:
+              type: string
+              description: Text search filter for username or email
+            status:
+              type: string
+              enum:
+              - Active
+              - LoginRequired
+              - Locked
+              - Suspended
+              - Invalid
+              description: Filter by account status
+            tags:
+              type: string
+              description: Comma-separated list of tags to filter by (OR logic)
+            min_followers:
+              type: integer
+              description: Minimum follower count
+            max_followers:
+              type: integer
+              description: Maximum follower count
+            min_following:
+              type: integer
+              description: Minimum following count
+            max_following:
+              type: integer
+              description: Maximum following count
+            min_tweets:
+              type: integer
+              description: Minimum tweet count
+            max_tweets:
+              type: integer
+              description: Maximum tweet count
+            min_account_age:
+              type: integer
+              description: Minimum account age in days
+            is_verified:
+              type: boolean
+              description: Filter by verified status
+            has_profile_pic:
+              type: boolean
+              description: Filter by whether account has custom profile picture
+            has_bio:
+              type: boolean
+              description: Filter by whether account has bio
         data:
           type: object
           description: 'Operation-specific data:
@@ -5416,8 +6137,8 @@ components:
       type: object
       properties:
         batch_id:
-          type: string
-          description: Unique batch operation UUID
+          type: integer
+          description: Unique batch operation ID
         status:
           type: string
           description: Current status
@@ -5435,11 +6156,11 @@ components:
           description: Response message
     BatchOperationDetail:
       type: object
-      description: Detailed batch operation information with items
+      description: Detailed batch operation information with results
       properties:
         batch_id:
-          type: string
-          description: Unique batch operation UUID
+          type: integer
+          description: Unique batch operation ID
         operation_type:
           type: string
           enum:
@@ -5482,46 +6203,149 @@ components:
           description: Operation parameters
         result:
           type: object
-          description: Operation results summary
+          description: Per-account operation results
+          properties:
+            completed:
+              type: array
+              items:
+                type: integer
+              description: List of account IDs that completed successfully
+            failed:
+              type: object
+              additionalProperties:
+                type: string
+              description: 'Map of failed account IDs to error messages (e.g. {"123": "Rate limited"})'
         created_at:
           type: integer
           format: int64
         updated_at:
           type: integer
           format: int64
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/BatchOperationItem'
-    BatchOperationItem:
+    StandardSuccessResponse:
       type: object
-      description: Individual account operation status
+      description: Standard success response wrapper
+      required:
+      - success
+      - data
+      - meta
       properties:
-        id:
-          type: integer
-          description: Item database ID
-        account_id:
-          type: integer
-          description: Account ID being processed
-        status:
+        success:
+          type: boolean
+          description: Indicates successful operation
+          example: true
+        data:
+          type: object
+          description: Response data payload
+          additionalProperties: true
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+        pagination:
+          $ref: '#/components/schemas/ApiPagination'
+    StandardErrorResponse:
+      type: object
+      description: Standard error response wrapper
+      required:
+      - success
+      - error
+      - meta
+      properties:
+        success:
+          type: boolean
+          description: Always false for errors
+          example: false
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              description: Error code for programmatic handling
+              enum:
+              - VALIDATION_ERROR
+              - INVALID_PARAMETER
+              - MISSING_REQUIRED_FIELD
+              - INVALID_FORMAT
+              - UNAUTHORIZED
+              - TOKEN_EXPIRED
+              - TOKEN_INVALID
+              - FORBIDDEN
+              - INSUFFICIENT_PERMISSIONS
+              - RESOURCE_NOT_FOUND
+              - ACCOUNT_NOT_FOUND
+              - TASK_NOT_FOUND
+              - WORKFLOW_NOT_FOUND
+              - PROXY_NOT_FOUND
+              - TWEET_NOT_FOUND
+              - CONFLICT
+              - RESOURCE_ALREADY_EXISTS
+              - RESOURCE_IN_USE
+              - RATE_LIMIT_EXCEEDED
+              - INTERNAL_ERROR
+              - DATABASE_ERROR
+              - EXTERNAL_SERVICE_ERROR
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              description: Human-readable error message
+              example: Invalid user ID
+            details:
+              type: array
+              description: Additional error details (field-level errors, etc.)
+              items:
+                type: object
+                additionalProperties: true
+        meta:
+          $ref: '#/components/schemas/ApiMeta'
+    ApiMeta:
+      type: object
+      description: Response metadata
+      required:
+      - timestamp
+      - path
+      properties:
+        timestamp:
           type: string
-          enum:
-          - PENDING
-          - SUCCESS
-          - FAILED
-          - SKIPPED
-          description: Item processing status
-        error_message:
+          format: date-time
+          description: ISO 8601 timestamp of response
+          example: '2025-12-21T03:04:00.123Z'
+        path:
           type: string
-          description: Error message if failed
-        processed_at:
+          description: Request path
+          example: /api/v1/data-fetcher/user/123/following
+    ApiPagination:
+      type: object
+      description: Pagination metadata
+      properties:
+        page:
           type: integer
-          format: int64
-          description: Unix timestamp when processed (0 if not yet processed)
-        created_at:
+          description: Current page number (1-indexed)
+          minimum: 1
+          example: 1
+        limit:
           type: integer
-          format: int64
-          description: Unix timestamp of creation
+          description: Items per page
+          minimum: 1
+          example: 20
+        total:
+          type: integer
+          description: Total number of items
+          minimum: 0
+          example: 150
+        totalPages:
+          type: integer
+          description: Total number of pages
+          minimum: 0
+          example: 8
+        hasNext:
+          type: boolean
+          description: Whether there is a next page
+          example: true
+        hasPrevious:
+          type: boolean
+          description: Whether there is a previous page
+          example: false
     RateLimit:
       type: object
       properties:
@@ -7249,3 +8073,147 @@ components:
           description: Optional tags for account filtering
         rate_limit:
           $ref: '#/components/schemas/RateLimit'
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Workflow ID
+        name:
+          type: string
+          description: Workflow name
+        description:
+          type: string
+          description: Workflow description
+        status:
+          type: string
+          enum:
+          - PENDING
+          - RUNNING
+          - PAUSED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+          description: Current workflow status
+        currentStep:
+          type: integer
+          description: Current step index
+        totalSteps:
+          type: integer
+          description: Total number of steps
+        createdAt:
+          type: string
+          format: date-time
+          description: Created timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last updated timestamp
+        steps:
+          type: array
+          description: Workflow steps
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+    WorkflowStep:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - DATA_INGEST
+          - GET_CLIENT
+          - ACTION_EXECUTE
+          - CONDITION
+          - DELAY
+          - ITERATOR
+          - AI_GENERATE
+          - FETCHER
+          - LOGIC_CONTROLLER
+          description: Step type
+        config:
+          type: object
+          description: Step-specific configuration
+    WorkflowDefinition:
+      type: object
+      required:
+      - name
+      - steps
+      properties:
+        name:
+          type: string
+          description: Workflow name
+        description:
+          type: string
+          description: Workflow description
+        tags:
+          type: array
+          items:
+            type: string
+          description: Workflow tags
+        steps:
+          type: array
+          description: Workflow steps
+          items:
+            type: object
+            required:
+            - type
+            properties:
+              type:
+                type: string
+                description: Step type
+              config:
+                type: object
+                description: Step configuration
+      example:
+        name: Auto Tweet Workflow
+        description: Tweet every 30 minutes
+        steps:
+        - type: GET_CLIENT
+          config:
+            selection: RANDOM
+            tag: active
+        - type: AI_GENERATE
+          config:
+            type: TWEET
+            prompt: Generate an engaging tweet about technology
+        - type: ACTION_EXECUTE
+          config:
+            action: TWEET
+            text: '{{ai_generated_text}}'
+        - type: DELAY
+          config:
+            duration_ms: 1800000
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Schedule ID
+        workflow_id:
+          type: integer
+          description: Associated workflow ID
+        cron_expression:
+          type: string
+          description: Cron expression (minute hour day month weekday)
+          example: 0 12 * * *
+        name:
+          type: string
+          description: Schedule name
+        enabled:
+          type: boolean
+          description: Whether the schedule is enabled
+        created_at:
+          type: integer
+          description: Created timestamp (Unix epoch)
+        last_run_at:
+          type: integer
+          description: Last run timestamp (Unix epoch)
+        next_run_at:
+          type: integer
+          description: Next scheduled run timestamp (Unix epoch)
+        run_count:
+          type: integer
+          description: Number of times this schedule has run
+        fail_count:
+          type: integer
+          description: Number of failed runs
