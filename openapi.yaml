@@ -36,19 +36,19 @@ tags:
 - name: Workflow Schedules
   description: Cron-based workflow scheduling
 paths:
-  /accounts/{username}/follow:
+  /accounts/{id}/follow:
     post:
       tags:
       - Account Actions
       summary: Follow a user
       description: Follow a Twitter user by user ID or username
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will perform the follow action
+        description: Twitter account ID that will perform the follow action
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -98,19 +98,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to follow user
-  /accounts/{username}/unfollow:
+  /accounts/{id}/unfollow:
     post:
       tags:
       - Account Actions
       summary: Unfollow a user
       description: Unfollow a Twitter user by user ID or username
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will perform the unfollow action
+        description: Twitter account ID that will perform the unfollow action
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -160,19 +160,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to unfollow user
-  /accounts/{username}/like:
+  /accounts/{id}/like:
     post:
       tags:
       - Account Actions
       summary: Like a tweet
       description: Like a tweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will like the tweet
+        description: Twitter account ID that will like the tweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -221,19 +221,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to like tweet
-  /accounts/{username}/unlike:
+  /accounts/{id}/unlike:
     post:
       tags:
       - Account Actions
       summary: Unlike a tweet
       description: Remove like from a tweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will unlike the tweet
+        description: Twitter account ID that will unlike the tweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -282,19 +282,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to unlike tweet
-  /accounts/{username}/bookmark:
+  /accounts/{id}/bookmark:
     post:
       tags:
       - Account Actions
       summary: Bookmark a tweet
       description: Bookmark a tweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will bookmark the tweet
+        description: Twitter account ID that will bookmark the tweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -343,19 +343,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to bookmark tweet
-  /accounts/{username}/tweet:
+  /accounts/{id}/tweet:
     post:
       tags:
       - Account Actions
       summary: Create a tweet
       description: Post a new tweet with text content, optional media, and optional community
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will post the tweet
+        description: Twitter account ID that will post the tweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -465,19 +465,200 @@ paths:
           description: Account not found
         '500':
           description: Failed to create tweet
-  /accounts/{username}/retweet:
+    delete:
+      tags:
+      - Account Actions
+      summary: Delete a tweet
+      description: Delete a tweet owned by this account by tweet ID or tweet URL
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID that owns the tweet
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tweet_id:
+                  oneOf:
+                  - type: integer
+                    format: int64
+                  - type: string
+                  description: Tweet ID to delete (as integer or string)
+                tweet_url:
+                  type: string
+                  description: Tweet URL to delete
+              oneOf:
+              - required:
+                - tweet_id
+              - required:
+                - tweet_url
+            examples:
+              byTweetId:
+                value:
+                  tweet_id: 1234567890123456789
+              byTweetUrl:
+                value:
+                  tweet_url: https://x.com/username/status/1234567890123456789
+      responses:
+        '200':
+          description: Tweet deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  tweet_id:
+                    type: string
+        '400':
+          description: Invalid request or delete action failed
+        '404':
+          description: Account not found
+        '500':
+          description: Failed to delete tweet
+  /accounts/{id}/pin:
+    post:
+      tags:
+      - Account Actions
+      summary: Pin a tweet
+      description: Pin a tweet to your profile by tweet ID or tweet URL
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID that owns the tweet
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tweet_id:
+                  oneOf:
+                  - type: integer
+                    format: int64
+                  - type: string
+                  description: Tweet ID to pin (as integer or string)
+                tweet_url:
+                  type: string
+                  description: Tweet URL to pin
+              oneOf:
+              - required:
+                - tweet_id
+              - required:
+                - tweet_url
+            examples:
+              byTweetId:
+                value:
+                  tweet_id: 1234567890123456789
+              byTweetUrl:
+                value:
+                  tweet_url: https://x.com/username/status/1234567890123456789
+      responses:
+        '200':
+          description: Tweet pinned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  tweet_id:
+                    type: string
+        '400':
+          description: Invalid request or pin action failed
+        '404':
+          description: Account not found
+        '500':
+          description: Failed to pin tweet
+    delete:
+      tags:
+      - Account Actions
+      summary: Unpin a tweet
+      description: Unpin the pinned tweet from your profile
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID that owns the tweet
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tweet_id:
+                  oneOf:
+                  - type: integer
+                    format: int64
+                  - type: string
+                  description: Tweet ID to unpin (as integer or string)
+                tweet_url:
+                  type: string
+                  description: Tweet URL to unpin
+              oneOf:
+              - required:
+                - tweet_id
+              - required:
+                - tweet_url
+            examples:
+              byTweetId:
+                value:
+                  tweet_id: 1234567890123456789
+              byTweetUrl:
+                value:
+                  tweet_url: https://x.com/username/status/1234567890123456789
+      responses:
+        '200':
+          description: Tweet unpinned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  tweet_id:
+                    type: string
+        '400':
+          description: Invalid request or unpin action failed
+        '404':
+          description: Account not found
+        '500':
+          description: Failed to unpin tweet
+  /accounts/{id}/retweet:
     post:
       tags:
       - Account Actions
       summary: Retweet a tweet
       description: Retweet a tweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will retweet
+        description: Twitter account ID that will retweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -526,19 +707,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to retweet
-  /accounts/{username}/unretweet:
+  /accounts/{id}/unretweet:
     post:
       tags:
       - Account Actions
       summary: Remove a retweet
       description: Remove a retweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will remove the retweet
+        description: Twitter account ID that will remove the retweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -585,19 +766,19 @@ paths:
           description: Invalid request or unretweet action failed
         '404':
           description: Account not found
-  /accounts/{username}/report:
+  /accounts/{id}/report:
     post:
       tags:
       - Account Actions
       summary: Report a user
       description: Report a Twitter user by user ID
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will perform the report action
+        description: Twitter account ID that will perform the report action
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -636,19 +817,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to report user
-  /accounts/{username}/reply:
+  /accounts/{id}/reply:
     post:
       tags:
       - Account Actions
       summary: Reply to a tweet
       description: Post a reply to a tweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will post the reply
+        description: Twitter account ID that will post the reply
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -709,19 +890,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to post reply
-  /accounts/{username}/quote:
+  /accounts/{id}/quote:
     post:
       tags:
       - Account Actions
       summary: Quote tweet
       description: Post a quote tweet by tweet ID or tweet URL
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username that will post the quote tweet
+        description: Twitter account ID that will post the quote tweet
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -787,7 +968,7 @@ paths:
           description: Account not found
         '500':
           description: Failed to post quote tweet
-  /accounts/{username}/change-password:
+  /accounts/{id}/change-password:
     post:
       tags:
       - Account Actions
@@ -805,12 +986,12 @@ paths:
 
         '
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter account username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -901,6 +1082,211 @@ paths:
                   error:
                     type: string
                     example: 'Failed to change password: <error details>'
+  /accounts/{id}/protected:
+    put:
+      tags:
+      - Account Actions
+      summary: Set account protection status
+      description: 'Set whether the Twitter account is protected (tweets only visible to followers) or public.
+
+        Throws an error if the account is already in the requested state.
+
+        '
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - protected
+              properties:
+                protected:
+                  type: boolean
+                  description: Set to true to protect the account, false to make it public
+            examples:
+              protect:
+                summary: Protect the account
+                value:
+                  protected: true
+              unprotect:
+                summary: Make account public
+                value:
+                  protected: false
+      responses:
+        '200':
+          description: Account protection status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Account is now protected
+                  username:
+                    type: string
+                    example: example_user
+                  protected:
+                    type: boolean
+                    example: true
+        '400':
+          description: Bad request - Invalid parameters
+        '404':
+          description: Account not found
+        '409':
+          description: Account already in the requested state
+        '500':
+          description: Internal server error
+  /accounts/{id}/username:
+    put:
+      tags:
+      - Account Actions
+      summary: Change account username
+      description: 'Changes the username (screen_name) of the Twitter account.
+
+        Updates local database and user agent specific storage upon success.
+
+        '
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - username
+              properties:
+                username:
+                  type: string
+                  description: New username to set for the account
+                  minLength: 1
+            examples:
+              changeUsername:
+                summary: Change username to 'new_handle'
+                value:
+                  username: new_handle
+      responses:
+        '200':
+          description: Username changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Username changed successfully
+                  username:
+                    type: string
+                    example: new_handle
+        '400':
+          description: Bad request - Invalid parameters or empty username
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error or change failed upstream
+  /accounts/{id}/languages:
+    get:
+      tags:
+      - Account Actions
+      summary: Get account languages
+      description: Retrieve the account's display language and preferred content languages.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Languages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  display_language:
+                    type: object
+                    properties:
+                      language_name:
+                        type: string
+                  preferred_content_languages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        language_name:
+                          type: string
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
+    post:
+      tags:
+      - Account Actions
+      summary: Set account languages
+      description: Update the account's display language and preferred content languages.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID
+        schema:
+          type: integer
+      requestBody:
+        description: Language selection
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - selected
+              properties:
+                selected:
+                  type: array
+                  description: List of language codes
+                  items:
+                    type: string
+                    example: en
+                  example:
+                  - en
+                  - tr
+                primary:
+                  type: string
+                  description: Primary language code
+                  example: en
+      responses:
+        '200':
+          description: Languages updated successfully
+        '400':
+          description: Invalid request
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
   /accounts:
     get:
       tags:
@@ -1008,36 +1394,48 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                - success
+                - data
+                - meta
                 properties:
-                  accounts:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Account'
-                  tags:
-                    type: array
-                    description: List of all available tags with their count of working accounts
-                    items:
-                      type: object
-                      properties:
-                        tag:
-                          type: string
-                          description: Tag name
-                        count:
-                          type: integer
-                          description: Number of working accounts with this tag
-                  pagination:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
                     type: object
                     properties:
-                      total:
-                        type: integer
-                      total_working:
-                        type: integer
-                      start:
-                        type: integer
-                      end:
-                        type: integer
-                      returned:
-                        type: integer
+                      accounts:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Account'
+                      tags:
+                        type: array
+                        description: List of all available tags with their count of working accounts
+                        items:
+                          type: object
+                          properties:
+                            tag:
+                              type: string
+                              description: Tag name
+                            count:
+                              type: integer
+                              description: Number of working accounts with this tag
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          total_working:
+                            type: integer
+                          start:
+                            type: integer
+                          end:
+                            type: integer
+                          returned:
+                            type: integer
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
     post:
       tags:
       - Account Management
@@ -1100,7 +1498,7 @@ paths:
       summary: Get account by username
       description: Retrieve account details by username
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
         description: Twitter username
@@ -1112,16 +1510,32 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                type: object
+                required:
+                - success
+                - data
+                - meta
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Account'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
         '404':
           description: Account not found
-  /accounts/{accountId}:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+  /accounts/{id}:
     get:
       tags:
       - Account Management
       summary: Get account details
       parameters:
-      - name: accountId
+      - name: id
         in: path
         required: true
         schema:
@@ -1132,13 +1546,25 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                type: object
+                required:
+                - success
+                - data
+                - meta
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Account'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
     delete:
       tags:
       - Account Management
       summary: Delete account
       parameters:
-      - name: accountId
+      - name: id
         in: path
         required: true
         schema:
@@ -1146,14 +1572,14 @@ paths:
       responses:
         '200':
           description: Account deleted successfully
-  /accounts/{accountId}/refreshUserInfo:
+  /accounts/{id}/refreshUserInfo:
     get:
       tags:
       - Account Management
       summary: Refresh user info
       description: Update account user information from Twitter
       parameters:
-      - name: accountId
+      - name: id
         in: path
         required: true
         schema:
@@ -1163,7 +1589,7 @@ paths:
           description: User info refreshed successfully
         '404':
           description: Account not found
-  /accounts/{accountId}/profile:
+  /accounts/{id}/profile:
     put:
       tags:
       - Account Management
@@ -1171,7 +1597,7 @@ paths:
       description: Update Twitter account profile settings including bio, location, website, profile image (avatar), and banner
         image
       parameters:
-      - name: accountId
+      - name: id
         in: path
         required: true
         schema:
@@ -1221,7 +1647,7 @@ paths:
           description: Invalid profile data or account ID
         '404':
           description: Account not found
-  /accounts/{accountId}/proxy:
+  /accounts/{id}/proxy:
     put:
       tags:
       - Account Management
@@ -1238,7 +1664,7 @@ paths:
 
         '
       parameters:
-      - name: accountId
+      - name: id
         in: path
         required: true
         schema:
@@ -1782,10 +2208,18 @@ paths:
                 success: true
                 data:
                   users:
-                  - id: '12345'
+                  - id: 12345
+                    username: example_user
                     screen_name: example_user
                     name: Example User
+                    bio: Just a sample user
                     followers_count: 1000
+                    following_count: 500
+                    tweet_count: 250
+                    profile_image_url: https://pbs.twimg.com/profile_images/example.jpg
+                    is_blue_verified: false
+                    following: true
+                    followed_by: false
                   count: 1
                 meta:
                   timestamp: '2025-12-21T04:21:00.123Z'
@@ -1840,10 +2274,18 @@ paths:
                 success: true
                 data:
                   users:
-                  - id: '12345'
+                  - id: 12345
+                    username: example_follower
                     screen_name: example_follower
                     name: Example Follower
+                    bio: Just a sample follower
                     followers_count: 500
+                    following_count: 300
+                    tweet_count: 150
+                    profile_image_url: https://pbs.twimg.com/profile_images/example.jpg
+                    is_blue_verified: true
+                    following: false
+                    followed_by: true
                   count: 1
                 meta:
                   timestamp: '2025-12-21T04:21:00.123Z'
@@ -1866,19 +2308,182 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardErrorResponse'
-  /accounts/{username}/messages:
+  /accounts/{id}/home-timeline:
+    get:
+      tags:
+      - Account Management
+      summary: Get account home timeline
+      description: Retrieve the home timeline tweets for this account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Account ID (local database ID)
+        schema:
+          type: integer
+      - name: count
+        in: query
+        description: Number of tweets to fetch
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Home timeline retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardSuccessResponse'
+              example:
+                success: true
+                data:
+                  tweets:
+                  - id: '1876543210987654321'
+                    text: Hello Twitter! This is a sample tweet from the timeline.
+                    created_at: Thu Jan 02 12:00:00 +0000 2026
+                    retweet_count: 42
+                    like_count: 128
+                    reply_count: 15
+                    quote_count: 5
+                    view_count: 5432
+                    is_retweet: false
+                    is_quote: false
+                    is_reply: false
+                    quoted_tweet_id:
+                    replied_to_tweet_id:
+                    retweeted_tweet_id:
+                    hashtags:
+                    - twitter
+                    - api
+                    mentions:
+                    - elonmusk
+                    lang: en
+                    source: Twitter Web App
+                    retweeted: false
+                    favorited: true
+                    url: https://twitter.com/example_user/status/1876543210987654321
+                    author:
+                      id: 123456789
+                      username: example_user
+                      screen_name: example_user
+                      name: Example User
+                      bio: Just a sample account for API documentation
+                      followers_count: 1500
+                      following_count: 500
+                      profile_image_url: https://pbs.twimg.com/profile_images/example.jpg
+                      is_blue_verified: true
+                  count: 1
+                meta:
+                  timestamp: '2026-01-02T16:30:00.123Z'
+                  path: /api/v1/accounts/1/home-timeline
+        '400':
+          description: Invalid parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: External service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+  /accounts/{id}/tweets-and-replies:
+    get:
+      tags:
+      - Account Management
+      summary: Get account's own tweets and replies
+      description: Retrieve the authenticated account's own tweets and replies
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Account ID (local database ID)
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Number of tweets to fetch
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Tweets and replies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardSuccessResponse'
+              example:
+                success: true
+                data:
+                  tweets_count: 10
+                  tweets:
+                  - id: '1876543210987654321'
+                    text: Hello Twitter! This is a sample tweet.
+                    created_at: Thu Jan 02 12:00:00 +0000 2026
+                    retweet_count: 42
+                    like_count: 128
+                    reply_count: 15
+                    quote_count: 5
+                    url: https://twitter.com/myuser/status/1876543210987654321
+                    favorited: false
+                    retweeted: false
+                    author:
+                      id: 123456789
+                      name: My Account
+                      screen_name: myuser
+                      profile_image_url: https://pbs.twimg.com/profile_images/example.jpg
+                meta:
+                  timestamp: '2026-01-02T16:30:00.123Z'
+                  path: /api/v1/accounts/1/tweets-and-replies
+        '400':
+          description: Invalid parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '403':
+          description: Account suspended or forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+  /accounts/{id}/messages:
     get:
       tags:
       - Account Messages
       summary: Get message inbox
       description: Retrieve all direct message conversations for an account
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       responses:
         '200':
           description: Inbox retrieved successfully
@@ -1890,19 +2495,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to fetch inbox
-  /accounts/{username}/messages/conversation/{conversationId}:
+  /accounts/{id}/messages/conversation/{conversationId}:
     get:
       tags:
       - Account Messages
       summary: Get conversation by ID
       description: Retrieve messages from a specific conversation
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: conversationId
         in: path
         required: true
@@ -1922,19 +2527,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to fetch conversation
-  /accounts/{username}/messages/user/{userId}:
+  /accounts/{id}/messages/user/{userId}:
     get:
       tags:
       - Account Messages
       summary: Get conversation by user ID
       description: Retrieve messages with a specific user by their user ID
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: userId
         in: path
         required: true
@@ -1955,19 +2560,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to fetch conversation
-  /accounts/{username}/messages/with/{targetUsername}:
+  /accounts/{id}/messages/with/{targetUsername}:
     get:
       tags:
       - Account Messages
       summary: Get conversation by username
       description: Retrieve messages with a specific user by their username
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: targetUsername
         in: path
         required: true
@@ -1987,19 +2592,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to fetch conversation
-  /accounts/{username}/messages/search/users:
+  /accounts/{id}/messages/search/users:
     get:
       tags:
       - Account Messages
       summary: Search users for messaging
       description: Search for users to start a conversation with
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: q
         in: query
         required: true
@@ -2019,19 +2624,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to search users
-  /accounts/{username}/messages/send:
+  /accounts/{id}/messages/send:
     post:
       tags:
       - Account Messages
       summary: Send message to user
       description: Send a direct message to a user by recipient ID (creates new conversation if needed)
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       requestBody:
         required: true
         content:
@@ -2070,19 +2675,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to send message
-  /accounts/{username}/messages/conversation/{conversationId}/send:
+  /accounts/{id}/messages/conversation/{conversationId}/send:
     post:
       tags:
       - Account Messages
       summary: Send message to conversation
       description: Send a direct message to an existing conversation
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: conversationId
         in: path
         required: true
@@ -2127,12 +2732,12 @@ paths:
       summary: Delete conversation
       description: Delete an existing direct message conversation
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: conversationId
         in: path
         required: true
@@ -2163,19 +2768,19 @@ paths:
           description: Account not found
         '500':
           description: Failed to delete conversation
-  /accounts/{username}/messages/image:
+  /accounts/{id}/messages/image:
     get:
       tags:
       - Account Messages
       summary: Load DM image
       description: Proxy endpoint to load direct message images through the user's authenticated session
       parameters:
-      - name: username
+      - name: id
         in: path
         required: true
-        description: Twitter username
+        description: Twitter account ID
         schema:
-          type: string
+          type: integer
       - name: url
         in: query
         required: true
@@ -3699,6 +4304,43 @@ paths:
           description: User not found
         '500':
           description: Failed to fetch tweets
+  /data-fetcher/user/{userId}/tweets-and-replies:
+    get:
+      tags:
+      - Data
+      summary: Fetch user tweets and replies by user ID
+      description: Get tweets and replies from specific user by their ID
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        description: Twitter user ID
+        schema:
+          type: integer
+          format: int64
+      - name: limit
+        in: query
+        description: Number of tweets to fetch
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Request processed (check status field for success/failure)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataFetcherResponse'
+        '400':
+          description: Invalid user ID or limit
+        '403':
+          description: Protected user account
+        '404':
+          description: User not found
+        '500':
+          description: Failed to fetch tweets
   /data-fetcher/user/{username}/tweets-by-username:
     get:
       tags:
@@ -4289,6 +4931,8 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/FarmingSession'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
         '404':
           description: Session not found
         '500':
@@ -4372,6 +5016,8 @@ paths:
                           $ref: '#/components/schemas/FarmingSession'
                       total:
                         type: integer
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
         '500':
           description: Server error
   /proxies:
@@ -4436,24 +5082,36 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                - success
+                - data
+                - meta
                 properties:
-                  proxies:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Proxy'
-                  pagination:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
                     type: object
                     properties:
-                      total:
-                        type: integer
-                      total_working:
-                        type: integer
-                      start:
-                        type: integer
-                      end:
-                        type: integer
-                      returned:
-                        type: integer
+                      proxies:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Proxy'
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          total_working:
+                            type: integer
+                          start:
+                            type: integer
+                          end:
+                            type: integer
+                          returned:
+                            type: integer
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
     post:
       tags:
       - Proxies
@@ -4605,6 +5263,8 @@ paths:
                                 description: Unix timestamp
                         config:
                           $ref: '#/components/schemas/RSSPostingConfig'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
         '500':
           description: Server error
   /rss/{account_id}:
@@ -5067,7 +5727,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SystemStats'
+                type: object
+                required:
+                - success
+                - data
+                - meta
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SystemStats'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
   /tasks:
     get:
       tags:
@@ -5115,24 +5787,36 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                - success
+                - data
+                - meta
                 properties:
-                  tasks:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Task'
-                  pagination:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
                     type: object
                     properties:
-                      total:
-                        type: integer
-                      total_active:
-                        type: integer
-                      start:
-                        type: integer
-                      end:
-                        type: integer
-                      returned:
-                        type: integer
+                      tasks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Task'
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          total_active:
+                            type: integer
+                          start:
+                            type: integer
+                          end:
+                            type: integer
+                          returned:
+                            type: integer
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
     post:
       tags:
       - Tasks
@@ -5231,9 +5915,21 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Workflow'
+                type: object
+                required:
+                - success
+                - data
+                - meta
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Workflow'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
     post:
       tags:
       - Workflows
@@ -5273,22 +5969,34 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                - success
+                - data
+                - meta
                 properties:
-                  totalWorkflows:
-                    type: integer
-                    description: Total number of workflows
-                  pendingWorkflows:
-                    type: integer
-                    description: Number of pending workflows
-                  runningWorkflows:
-                    type: integer
-                    description: Number of running workflows
-                  completedWorkflows:
-                    type: integer
-                    description: Number of completed workflows
-                  failedWorkflows:
-                    type: integer
-                    description: Number of failed workflows
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      totalWorkflows:
+                        type: integer
+                        description: Total number of workflows
+                      pendingWorkflows:
+                        type: integer
+                        description: Number of pending workflows
+                      runningWorkflows:
+                        type: integer
+                        description: Number of running workflows
+                      completedWorkflows:
+                        type: integer
+                        description: Number of completed workflows
+                      failedWorkflows:
+                        type: integer
+                        description: Number of failed workflows
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
   /api/v1/workflows/{id}:
     get:
       tags:
@@ -5309,13 +6017,25 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Workflow'
+                type: object
+                required:
+                - success
+                - data
+                - meta
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Workflow'
+                  meta:
+                    $ref: '#/components/schemas/ApiMeta'
         '404':
           description: Workflow not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/StandardErrorResponse'
     put:
       tags:
       - Workflows
@@ -5724,6 +6444,10 @@ components:
           items:
             type: string
           description: Account tags for categorization
+        cookie:
+          type: string
+          description: Full session cookie string containing all Twitter session cookies
+          example: auth_token=abc123; ct0=xyz789; guest_id=v1%3A...
         proxy:
           allOf:
           - $ref: '#/components/schemas/ProxyInfo'
@@ -5970,6 +6694,9 @@ components:
           - LEAVE_COMMUNITY
           - START_FARMING
           - STOP_FARMING
+          - REPORT_USER
+          - SET_PROTECTED
+          - SET_LANGUAGES
           description: Type of batch operation
         status:
           type: string
@@ -6028,6 +6755,9 @@ components:
           - LEAVE_COMMUNITY
           - START_FARMING
           - STOP_FARMING
+          - REPORT_USER
+          - SET_PROTECTED
+          - SET_LANGUAGES
           description: Type of operation to perform
         account_ids:
           type: array
@@ -6126,7 +6856,9 @@ components:
 
             - STOP_FARMING: {}
 
-            '
+            - SET_PROTECTED: { "protected": boolean }
+
+            - SET_LANGUAGES: { "languages": ["en", "tr"], "primary_language": "en" (optional) } '
         delay_ms:
           type: integer
           minimum: 0
@@ -6184,6 +6916,9 @@ components:
           - LEAVE_COMMUNITY
           - START_FARMING
           - STOP_FARMING
+          - REPORT_USER
+          - SET_PROTECTED
+          - SET_LANGUAGES
         status:
           type: string
           enum:
@@ -6724,13 +7459,17 @@ components:
           type: string
         bio:
           type: string
-        follower_count:
+        description:
+          type: string
+        followers_count:
           type: integer
         following_count:
           type: integer
         tweet_count:
           type: integer
         profile_image_url:
+          type: string
+        profile_banner_url:
           type: string
         following:
           type: boolean
@@ -6783,45 +7522,93 @@ components:
         can_highlight_tweets:
           type: boolean
         highlighted_tweets:
-          type: array
-          items:
-            type: string
+          type: string
+        url:
+          type: string
+        ntab_unread_count:
+          type: integer
+        dm_unread_count:
+          type: integer
+        total_unread_count:
+          type: integer
+        xchat_unread_count:
+          type: integer
+        is_from_urt:
+          type: boolean
     TweetData:
       type: object
       description: Twitter tweet data structure
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
           description: Tweet unique identifier
         text:
           type: string
           description: Tweet text content
         created_at:
-          type: integer
-          format: int64
-          description: Unix timestamp when tweet was created
-        like_count:
-          type: integer
-          description: Number of likes on the tweet
+          type: string
+          description: Tweet creation timestamp string
         retweet_count:
           type: integer
           description: Number of retweets
+        like_count:
+          type: integer
+          description: Number of likes on the tweet
         reply_count:
           type: integer
           description: Number of replies
         quote_count:
           type: integer
           description: Number of quote tweets
+        view_count:
+          type: integer
+          description: Number of views
+        is_retweet:
+          type: boolean
+          description: Whether this is a retweet
+        is_quote:
+          type: boolean
+          description: Whether this is a quote tweet
+        is_reply:
+          type: boolean
+          description: Whether this is a reply
+        quoted_tweet_id:
+          type: string
+          nullable: true
+          description: ID of quoted tweet (null if not a quote)
+        replied_to_tweet_id:
+          type: string
+          nullable: true
+          description: ID of tweet being replied to (null if not a reply)
+        retweeted_tweet_id:
+          type: string
+          nullable: true
+          description: ID of retweeted tweet (null if not a retweet)
+        hashtags:
+          type: array
+          items:
+            type: string
+          description: Hashtags in the tweet
+        mentions:
+          type: array
+          items:
+            type: string
+          description: User mentions in the tweet
+        lang:
+          type: string
+          description: Tweet language code
+        source:
+          type: string
+          description: Source application
+        retweeted:
+          type: boolean
+          description: Whether current user retweeted this tweet
+        favorited:
+          type: boolean
+          description: Whether current user favorited this tweet
         url:
           type: string
           description: URL to the tweet
-        favorited:
-          type: boolean
-          description: Whether the tweet is favorited
-        retweeted:
-          type: boolean
-          description: Whether the tweet is retweeted
         author:
           type: object
           nullable: true
@@ -6831,15 +7618,30 @@ components:
               type: integer
               format: int64
               description: Author user ID
+            username:
+              type: string
+              description: Author username
+            screen_name:
+              type: string
+              description: Author screen name
             name:
               type: string
               description: Author display name
-            screen_name:
+            bio:
               type: string
-              description: Author username
+              description: Author bio
+            followers_count:
+              type: integer
+              description: Author followers count
+            following_count:
+              type: integer
+              description: Author following count
             profile_image_url:
               type: string
               description: Author profile image URL
+            is_blue_verified:
+              type: boolean
+              description: Whether author has blue verification
     MessageUser:
       type: object
       description: User information in DM context
