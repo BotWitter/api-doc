@@ -4,37 +4,9 @@ info:
   description: Comprehensive Twitter automation and management platform API.
   version: 1.0.0
 servers:
-- url: http://localhost:8080/api/v1
-  description: Development server
-tags:
-- name: Tasks
-  description: Task management and execution
-- name: Account Management
-  description: Twitter account CRUD operations (create, read, update, delete)
-- name: Account Messages
-  description: Direct message (DM) operations for Twitter accounts
-- name: Account Actions
-  description: Twitter actions (follow, like, tweet, retweet, reply, quote)
-- name: Farming
-  description: Account farming and engagement automation
-- name: Configuration
-  description: System configuration management (AI, Proxy, Account, HTTP Server settings)
-- name: AI
-  description: AI service integration and prompt operations
-- name: System
-  description: System status and health
-- name: Data
-  description: Data fetching services
-- name: Proxies
-  description: Proxy pool management
-- name: RSS
-  description: RSS feed to Twitter automation
-- name: Batch Operations
-  description: Bulk account operations (add/remove tags, change proxy, update status, delete)
-- name: Workflows
-  description: Workflow automation engine
-- name: Workflow Schedules
-  description: Cron-based workflow scheduling
+  - url: http://localhost:8080/api/v1
+    description: Current server
+
 paths:
   /accounts/{id}/follow:
     post:
@@ -1287,6 +1259,197 @@ paths:
           description: Account not found
         '500':
           description: Internal server error
+  /accounts/{id}/proxy-request:
+    post:
+      tags:
+      - Account Actions
+      summary: Proxy HTTP request through account
+      description: 'Forward an HTTP request to Twitter/X domains using the account''s authenticated HTTP client.
+
+        Only x.com and twitter.com domains (including subdomains) are allowed.
+
+
+        **Data Format Options:**
+
+        - `formData`: Key-value pairs → URL-encoded (application/x-www-form-urlencoded)
+
+        - `jsonData`: Object → JSON body (application/json)
+
+        - `rawData`: Raw string with optional `contentType`
+
+        - `data`: Legacy field (object→JSON, string→raw)
+
+        - `queryParams`: Appended to URL as query string
+
+
+        Supports GET, POST, PUT, DELETE, PATCH methods with custom headers and multipart file uploads.
+
+        '
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Twitter account ID or username
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - url
+              properties:
+                url:
+                  type: string
+                  description: Target URL (must be x.com or twitter.com domain)
+                  example: https://api.x.com/1.1/users/show.json?screen_name=twitter
+                method:
+                  type: string
+                  enum:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  default: GET
+                  description: HTTP method
+                headers:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Custom headers to include
+                  example:
+                    X-Custom-Header: value
+                data:
+                  oneOf:
+                  - type: object
+                  - type: string
+                  description: 'Legacy field for request body (use formData, jsonData, or rawData instead).
+
+                    - object/array: Serialized as JSON
+
+                    - string: Sent as-is (default Content-Type: application/x-www-form-urlencoded)
+
+                    '
+                formData:
+                  type: object
+                  additionalProperties:
+                    oneOf:
+                    - type: string
+                    - type: number
+                    - type: boolean
+                  description: "Form data as key-value pairs. Automatically URL-encoded and sent with \nContent-Type: application/x-www-form-urlencoded\n"
+                  example:
+                    username: test
+                    password: secret123
+                jsonData:
+                  type: object
+                  description: 'JSON data to send in request body. Sent with Content-Type: application/json
+
+                    '
+                  example:
+                    key: value
+                    nested:
+                      foo: bar
+                rawData:
+                  type: string
+                  description: 'Raw string data to send in request body. Use with contentType to specify MIME type.
+
+                    Default Content-Type: text/plain
+
+                    '
+                  example: key1=value1&key2=value2
+                contentType:
+                  type: string
+                  description: "Content-Type header for rawData or string data. \nOnly used when rawData is provided or data\
+                    \ is a string.\n"
+                  example: application/x-www-form-urlencoded
+                queryParams:
+                  type: object
+                  additionalProperties:
+                    oneOf:
+                    - type: string
+                    - type: number
+                    - type: boolean
+                  description: 'Query parameters to append to URL. Automatically URL-encoded.
+
+                    '
+                  example:
+                    page: '1'
+                    limit: '10'
+                multipart:
+                  type: boolean
+                  default: false
+                  description: Enable multipart/form-data mode
+                fields:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Form fields for multipart requests
+                files:
+                  type: array
+                  description: Files to upload in multipart mode
+                  items:
+                    type: object
+                    required:
+                    - data
+                    properties:
+                      field:
+                        type: string
+                        default: file
+                        description: Form field name
+                      filename:
+                        type: string
+                        default: file
+                        description: File name
+                      content_type:
+                        type: string
+                        default: application/octet-stream
+                        description: MIME type
+                      data:
+                        type: string
+                        format: byte
+                        description: Base64-encoded file content
+      responses:
+        '200':
+          description: Request completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: integer
+                        description: HTTP status code from target
+                      body:
+                        type: string
+                        description: Response body
+                      headers:
+                        type: object
+                        additionalProperties:
+                          type: string
+                        description: Response headers
+                      final_url:
+                        type: string
+                        description: Final URL after redirects
+                      error:
+                        type: string
+                        description: Error message if request failed
+        '400':
+          description: Invalid parameter or request body
+        '403':
+          description: Domain not allowed (only x.com/twitter.com permitted)
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
   /accounts:
     get:
       tags:
@@ -2197,6 +2360,12 @@ paths:
           minimum: 1
           maximum: 100
           default: 20
+      - name: cursor
+        in: query
+        description: Pagination cursor from previous response (optional, for fetching next page)
+        schema:
+          type: string
+        example: DAABCgABGaEbiMu__-gKAAIZoRtIyz__5ggAAwAAAAIAAA
       responses:
         '200':
           description: Following list retrieved successfully
@@ -2221,6 +2390,8 @@ paths:
                     following: true
                     followed_by: false
                   count: 1
+                  nextCursor: DAABCgABGaEbiMu__-gKAAIZoRtIyz__5ggAAwAAAAIAAA
+                  hasMore: true
                 meta:
                   timestamp: '2025-12-21T04:21:00.123Z'
                   path: /api/v1/accounts/1/following
@@ -2263,6 +2434,12 @@ paths:
           minimum: 1
           maximum: 100
           default: 20
+      - name: cursor
+        in: query
+        description: Pagination cursor from previous response (optional, for fetching next page)
+        schema:
+          type: string
+        example: DAABCgABGaEbiMu__-gKAAIZoRtIyz__5ggAAwAAAAIAAA
       responses:
         '200':
           description: Followers list retrieved successfully
@@ -2287,6 +2464,8 @@ paths:
                     following: false
                     followed_by: true
                   count: 1
+                  nextCursor: DAABCgABGaEbiMu__-gKAAIZoRtIyz__5ggAAwAAAAIAAA
+                  hasMore: true
                 meta:
                   timestamp: '2025-12-21T04:21:00.123Z'
                   path: /api/v1/accounts/1/followers
@@ -2476,7 +2655,18 @@ paths:
       tags:
       - Account Messages
       summary: Get message inbox
-      description: Retrieve all direct message conversations for an account
+      description: 'Retrieve direct message conversations for an account with pagination support.
+
+
+        **Modes:**
+
+        - **Default**: Returns paginated messages from cache (fast)
+
+        - **only_updates=true**: Returns only NEW messages since last fetch (for polling)
+
+        - **force_refresh=true**: Forces full refresh from Twitter API
+
+        '
       parameters:
       - name: id
         in: path
@@ -2484,13 +2674,52 @@ paths:
         description: Twitter account ID
         schema:
           type: integer
+      - name: page
+        in: query
+        required: false
+        description: Page number (1-indexed, default 1)
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Messages per page (default 50, max 100)
+        schema:
+          type: integer
+          default: 50
+          minimum: 1
+          maximum: 100
+      - name: only_updates
+        in: query
+        required: false
+        description: If true, returns only new messages since last fetch (lightweight polling)
+        schema:
+          type: boolean
+          default: false
+      - name: force_refresh
+        in: query
+        required: false
+        description: If true, forces a full refresh from Twitter API
+        schema:
+          type: boolean
+          default: false
       responses:
         '200':
           description: Inbox retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageInboxResponse'
+                allOf:
+                - $ref: '#/components/schemas/MessageInboxResponse'
+                - type: object
+                  properties:
+                    pagination:
+                      $ref: '#/components/schemas/ApiPagination'
+                    has_updates:
+                      type: boolean
+                      description: Only present when only_updates=true
         '404':
           description: Account not found
         '500':
@@ -2918,6 +3147,1001 @@ paths:
                   error:
                     type: string
                     example: AI is not configured. Please configure AI API key and endpoint in settings.
+  /analytics/overview:
+    get:
+      tags:
+      - Analytics
+      summary: Get system-wide analytics overview
+      description: Returns high-level analytics for all accounts including total followers, growing/declining accounts count
+      responses:
+        '200':
+          description: System analytics overview
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: ../components/schemas/analytics.yaml#/SystemOverview
+  /analytics/accounts:
+    get:
+      tags:
+      - Analytics
+      summary: Get all accounts with analytics
+      description: Returns paginated list of all accounts with their current analytics and growth data
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+        description: Page number (1-indexed)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          maximum: 100
+        description: Items per page (max 100)
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 7
+        description: 'Period for growth calculation: 1 = 24h, 2-7 = 7d, 8+ = 30d'
+      responses:
+        '200':
+          description: Paginated list of accounts with analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                - pagination
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/analytics.yaml#/AnalyticsAccountItem
+                  pagination:
+                    $ref: ../components/schemas/common.yaml#/ApiPagination
+  /analytics/top-growers:
+    get:
+      tags:
+      - Analytics
+      summary: Get top growing accounts
+      description: Returns paginated list of accounts with highest follower growth in the specified period
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+        description: Page number (1-indexed)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          maximum: 100
+        description: Items per page (max 100)
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 7
+        description: Time period in days
+      responses:
+        '200':
+          description: Paginated list of top growing accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                - pagination
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/analytics.yaml#/GrowthRankItem
+                  pagination:
+                    $ref: ../components/schemas/common.yaml#/ApiPagination
+  /analytics/decliners:
+    get:
+      tags:
+      - Analytics
+      summary: Get declining accounts
+      description: Returns paginated list of accounts with highest follower loss in the specified period
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+        description: Page number (1-indexed)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          maximum: 100
+        description: Items per page (max 100)
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 7
+        description: Time period in days
+      responses:
+        '200':
+          description: Paginated list of declining accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                - pagination
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/analytics.yaml#/DeclineRankItem
+                  pagination:
+                    $ref: ../components/schemas/common.yaml#/ApiPagination
+  /analytics/compare:
+    post:
+      tags:
+      - Analytics
+      summary: Compare multiple accounts
+      description: Returns side-by-side comparison of multiple accounts with their dashboards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - account_ids
+              properties:
+                account_ids:
+                  type: array
+                  items:
+                    oneOf:
+                    - type: integer
+                    - type: string
+                  description: Array of account IDs or usernames to compare
+                  example:
+                  - 1
+                  - 2
+                  - myusername
+      responses:
+        '200':
+          description: Comparison result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: ../components/schemas/analytics.yaml#/ComparisonResult
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: account_ids array required
+        '404':
+          description: No valid accounts found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: No valid accounts found
+  /analytics/accounts/{id}/dashboard:
+    get:
+      tags:
+      - Analytics
+      summary: Get account analytics dashboard
+      description: Returns complete analytics dashboard for a specific account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          oneOf:
+          - type: integer
+          - type: string
+        description: Account ID or username
+      responses:
+        '200':
+          description: Account dashboard
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: ../components/schemas/analytics.yaml#/AccountDashboard
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Account not found
+  /analytics/accounts/{id}/growth:
+    get:
+      tags:
+      - Analytics
+      summary: Get account growth data
+      description: Returns growth metrics for a specific time period
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          oneOf:
+          - type: integer
+          - type: string
+        description: Account ID or username
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 7
+        description: 'Period: 1 = 24h, 2-7 = 7d, 8+ = 30d'
+      responses:
+        '200':
+          description: Growth data
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: ../components/schemas/analytics.yaml#/AccountGrowthData
+        '404':
+          description: Account not found
+  /analytics/accounts/{id}/trend:
+    get:
+      tags:
+      - Analytics
+      summary: Get account growth trend
+      description: Returns trend analysis with velocity, acceleration and projections
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          oneOf:
+          - type: integer
+          - type: string
+        description: Account ID or username
+      responses:
+        '200':
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: ../components/schemas/analytics.yaml#/GrowthTrend
+        '404':
+          description: Account not found
+  /analytics/accounts/{id}/history:
+    get:
+      tags:
+      - Analytics
+      summary: Get account follower history
+      description: Returns daily follower count history
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          oneOf:
+          - type: integer
+          - type: string
+        description: Account ID or username
+      responses:
+        '200':
+          description: Follower history
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - success
+                - data
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/analytics.yaml#/HistoryPoint
+        '404':
+          description: Account not found
+  /autoreply/accounts/{id}:
+    get:
+      tags:
+      - AutoReply
+      summary: Get account AutoReply status
+      description: Get AutoReply status and configuration for a specific account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Account status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      account_id:
+                        type: integer
+                      enabled:
+                        type: boolean
+                      config:
+                        $ref: '#/components/schemas/AutoReplyAccountConfig'
+                      rules_count:
+                        type: integer
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+    post:
+      tags:
+      - AutoReply
+      summary: Enable AutoReply for account
+      description: Enable AutoReply bot for a specific Twitter account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Account enabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      account_id:
+                        type: integer
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+    delete:
+      tags:
+      - AutoReply
+      summary: Disable AutoReply for account
+      description: Disable AutoReply bot for a specific Twitter account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Account disabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      account_id:
+                        type: integer
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+  /autoreply/accounts/{id}/config:
+    get:
+      tags:
+      - AutoReply
+      summary: Get account config
+      description: Retrieve AutoReply configuration for a specific account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Config retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AutoReplyAccountConfig'
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+    put:
+      tags:
+      - AutoReply
+      summary: Update account config
+      description: Update AutoReply configuration for a specific account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoReplyAccountConfig'
+      responses:
+        '200':
+          description: Config updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      config:
+                        $ref: '#/components/schemas/AutoReplyAccountConfig'
+        '400':
+          description: Invalid configuration
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+    delete:
+      tags:
+      - AutoReply
+      summary: Reset account config
+      description: Reset AutoReply configuration for an account to defaults
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Config reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      account_id:
+                        type: integer
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+  /autoreply/accounts/{id}/rules:
+    get:
+      tags:
+      - AutoReply
+      summary: Get account rules
+      description: Retrieve all AutoReply rules for a specific account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Rules retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      rules:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AutoReplyRule'
+                      count:
+                        type: integer
+                      account_id:
+                        type: integer
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+    post:
+      tags:
+      - AutoReply
+      summary: Add rule to account
+      description: Create a new AutoReply rule for a specific account
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoReplyRuleRequest'
+      responses:
+        '200':
+          description: Rule created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      rule:
+                        $ref: '#/components/schemas/AutoReplyRule'
+        '400':
+          description: Invalid rule data
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+  /autoreply/accounts/{id}/logs:
+    get:
+      tags:
+      - AutoReply
+      summary: Get account logs
+      description: Retrieve AutoReply logs for a specific account with pagination
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 100
+      responses:
+        '200':
+          description: Logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AutoReplyLog'
+                  meta:
+                    $ref: '#/components/schemas/ApiPagination'
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+  /autoreply/accounts:
+    get:
+      tags:
+      - AutoReply
+      summary: List all enabled accounts
+      description: Retrieve all accounts with AutoReply enabled
+      responses:
+        '200':
+          description: Accounts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      accounts:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            account_id:
+                              type: integer
+                            enabled:
+                              type: boolean
+                            rules_count:
+                              type: integer
+                      count:
+                        type: integer
+        '500':
+          description: Server error
+  /autoreply/accounts/bulk:
+    post:
+      tags:
+      - AutoReply
+      summary: Enable multiple accounts
+      description: Enable AutoReply for multiple accounts at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - account_ids
+              properties:
+                account_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Accounts enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      enabled_ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+    delete:
+      tags:
+      - AutoReply
+      summary: Disable multiple accounts
+      description: Disable AutoReply for multiple accounts at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - account_ids
+              properties:
+                account_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Accounts disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      disabled_ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+  /autoreply/rules:
+    get:
+      tags:
+      - AutoReply
+      summary: Get all rules
+      description: Retrieve all configured AutoReply rules across all accounts
+      responses:
+        '200':
+          description: Rules retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      rules:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AutoReplyRule'
+                      count:
+                        type: integer
+        '500':
+          description: Server error
+    post:
+      tags:
+      - AutoReply
+      summary: Create a rule
+      description: Create a new AutoReply rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoReplyRuleRequest'
+      responses:
+        '200':
+          description: Rule created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      rule:
+                        $ref: '#/components/schemas/AutoReplyRule'
+        '400':
+          description: Invalid rule data
+        '500':
+          description: Server error
+  /autoreply/rules/{id}:
+    get:
+      tags:
+      - AutoReply
+      summary: Get a rule
+      description: Retrieve a single AutoReply rule by ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Rule retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      rule:
+                        $ref: '#/components/schemas/AutoReplyRule'
+        '404':
+          description: Rule not found
+        '500':
+          description: Server error
+    put:
+      tags:
+      - AutoReply
+      summary: Update a rule
+      description: Update an existing AutoReply rule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoReplyRuleRequest'
+      responses:
+        '200':
+          description: Rule updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      rule:
+                        $ref: '#/components/schemas/AutoReplyRule'
+        '404':
+          description: Rule not found
+        '400':
+          description: Invalid rule data
+        '500':
+          description: Server error
+    delete:
+      tags:
+      - AutoReply
+      summary: Delete a rule
+      description: Permanently delete an AutoReply rule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Rule deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      rule_id:
+                        type: integer
+        '404':
+          description: Rule not found
+        '500':
+          description: Server error
   /accounts/batch:
     get:
       tags:
@@ -2962,6 +4186,7 @@ paths:
           - START_FARMING
           - STOP_FARMING
           - REPORT_USER
+          - SEND_MESSAGE
       responses:
         '200':
           description: List of batch operations
@@ -3019,6 +4244,8 @@ paths:
         - JOIN_COMMUNITY/LEAVE_COMMUNITY: Join or leave a community
 
         - REPORT_USER: Report a Twitter user
+
+        - SEND_MESSAGE: Send a direct message to a user
 
 
         Operations with 5+ items run in parallel using a thread pool.
@@ -3220,6 +4447,30 @@ paths:
                   - 5
                   data:
                     user_id: '123456789'
+                  delay_ms: 5000
+              send_message_by_id:
+                summary: Multiple accounts send a DM to a user by ID
+                value:
+                  operation: SEND_MESSAGE
+                  account_ids:
+                  - 1
+                  - 2
+                  - 3
+                  data:
+                    user_id: '123456789'
+                    text: Hello! This is an automated message.
+                  delay_ms: 5000
+              send_message_by_username:
+                summary: Multiple accounts send a DM to a user by username
+                value:
+                  operation: SEND_MESSAGE
+                  account_ids:
+                  - 1
+                  - 2
+                  - 3
+                  data:
+                    username: elonmusk
+                    text: Hello! This is an automated message.
                   delay_ms: 5000
       responses:
         '201':
@@ -4272,7 +5523,14 @@ paths:
       tags:
       - Data
       summary: Fetch user tweets by user ID
-      description: Get tweets from specific user by their ID
+      description: 'Get tweets from specific user by their ID.
+
+
+        **Account Selection**: Uses LRU (Least Recently Used) algorithm - selects the account with the oldest last-usage timestamp
+        per operation type. Each account has a 20-second cooldown per operation. On failure, retries with different accounts
+        (max 3 attempts).
+
+        '
       parameters:
       - name: userId
         in: path
@@ -4296,6 +5554,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DataFetcherResponse'
+              example:
+                success: true
+                data:
+                  status: Success
+                  tweets_count: 2
+                  error_message: ''
+                  tweets:
+                  - id: 1234567890123456789
+                    text: This is a sample tweet
+                    created_at: Wed Jan 08 12:00:00 +0000 2026
+                    like_count: 100
+                    retweet_count: 50
+                    reply_count: 10
+                    quote_count: 5
+                    url: https://x.com/username/status/1234567890123456789
+                    favorited: false
+                    retweeted: false
+                    author:
+                      id: 44196397
+                      name: Elon Musk
+                      screen_name: elonmusk
+                      profile_image_url: https://pbs.twimg.com/profile_images/2008546467615580160/57KcqsTA_normal.jpg
+                meta:
+                  path: /api/v1/data-fetcher/user/44196397/tweets
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Invalid user ID or limit
         '403':
@@ -4399,13 +5682,42 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    enum:
-                    - Success
-                    description: Fetch operation status
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                        - Success
+                      tweet:
+                        $ref: '#/components/schemas/TweetData'
+                  meta:
+                    type: object
+              example:
+                success: true
+                data:
+                  status: Success
                   tweet:
-                    $ref: '#/components/schemas/TweetData'
+                    id: 1234567890123456789
+                    text: This is a sample tweet
+                    created_at: Wed Jan 08 12:00:00 +0000 2026
+                    like_count: 100
+                    retweet_count: 50
+                    reply_count: 10
+                    quote_count: 5
+                    url: https://x.com/elonmusk/status/1234567890123456789
+                    favorited: false
+                    retweeted: false
+                    author:
+                      id: 44196397
+                      name: Elon Musk
+                      screen_name: elonmusk
+                      profile_image_url: https://pbs.twimg.com/profile_images/2008546467615580160/57KcqsTA_normal.jpg
+                meta:
+                  path: /api/v1/data-fetcher/tweet/1234567890123456789
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Invalid tweet ID
         '404':
@@ -4569,14 +5881,74 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    enum:
-                    - Success
-                    description: Fetch operation status
-                  user:
+                  success:
+                    type: boolean
+                  data:
                     type: object
-                    description: User information
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                        - Success
+                      user:
+                        $ref: '#/components/schemas/UserData'
+                  meta:
+                    type: object
+                    properties:
+                      path:
+                        type: string
+                      timestamp:
+                        type: string
+              example:
+                success: true
+                data:
+                  status: Success
+                  user:
+                    id: 44196397
+                    username: elonmusk
+                    screen_name: ''
+                    name: Elon Musk
+                    bio: ''
+                    description: ''
+                    followers_count: 231695346
+                    following_count: 1264
+                    tweet_count: 93604
+                    profile_image_url: https://pbs.twimg.com/profile_images/2008546467615580160/57KcqsTA_normal.jpg
+                    profile_banner_url: https://pbs.twimg.com/profile_banners/44196397/1739948056
+                    following: false
+                    followed_by: false
+                    created_at: ''
+                    location: ''
+                    is_blue_verified: true
+                    verified: false
+                    protected_account: false
+                    default_profile: false
+                    default_profile_image: false
+                    favourites_count: 0
+                    listed_count: 0
+                    media_count: 0
+                    possibly_sensitive: false
+                    profile_image_shape: Circle
+                    can_dm: false
+                    can_media_tag: false
+                    pinned_tweet_ids: []
+                    birth_day: 0
+                    birth_month: 0
+                    birth_year: 0
+                    birth_visibility: ''
+                    birth_year_visibility: ''
+                    is_identity_verified: false
+                    can_highlight_tweets: false
+                    highlighted_tweets: ''
+                    url: ''
+                    ntab_unread_count: 0
+                    dm_unread_count: 0
+                    total_unread_count: 0
+                    xchat_unread_count: 0
+                    is_from_urt: false
+                meta:
+                  path: /api/v1/data-fetcher/user/elonmusk/info
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Invalid username
         '404':
@@ -4605,26 +5977,39 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    enum:
-                    - Success
-                    description: Validation operation status
-                  tweet_id:
-                    type: string
-                    description: The validated tweet ID
-                  validation_result:
-                    type: string
-                    enum:
-                    - VALID
-                    - INVALID
-                    - NOT_FOUND
-                    - PROTECTED
-                    - SUSPENDED
-                    description: Tweet validation result
-                  is_valid:
+                  success:
                     type: boolean
-                    description: True if tweet is valid and accessible
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                        - Success
+                      tweet_id:
+                        type: string
+                      validation_result:
+                        type: string
+                        enum:
+                        - Valid
+                        - Invalid
+                        - NotFound
+                        - Protected
+                        - Suspended
+                      is_valid:
+                        type: boolean
+                  meta:
+                    type: object
+              example:
+                success: true
+                data:
+                  status: Success
+                  tweet_id: '1234567890123456789'
+                  validation_result: Valid
+                  is_valid: true
+                meta:
+                  path: /api/v1/data-fetcher/tweet/1234567890123456789/validate
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Invalid tweet ID
         '500':
@@ -4659,22 +6044,50 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    enum:
-                    - Success
-                    description: Fetch operation status
-                  tweet_id:
-                    type: string
-                    description: The original tweet ID
-                  quotes_count:
-                    type: integer
-                    description: Number of quote tweets found
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                        - Success
+                      tweet_id:
+                        type: string
+                      quotes_count:
+                        type: integer
+                      quotes:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TweetData'
+                  meta:
+                    type: object
+              example:
+                success: true
+                data:
+                  status: Success
+                  tweet_id: '1234567890123456789'
+                  quotes_count: 1
                   quotes:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TweetData'
-                    description: Array of quote tweets
+                  - id: 9876543210987654321
+                    text: This is a quote tweet
+                    created_at: Wed Jan 08 14:00:00 +0000 2026
+                    like_count: 25
+                    retweet_count: 10
+                    reply_count: 5
+                    quote_count: 0
+                    url: https://x.com/user/status/9876543210987654321
+                    favorited: false
+                    retweeted: false
+                    author:
+                      id: 12345678
+                      name: Sample User
+                      screen_name: sampleuser
+                      profile_image_url: https://pbs.twimg.com/profile_images/default.jpg
+                meta:
+                  path: /api/v1/data-fetcher/tweet/1234567890123456789/quotes
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Invalid tweet ID or limit
         '500':
@@ -4693,20 +6106,31 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    enum:
-                    - Success
-                    description: Operation status
-                  cache_size:
-                    type: integer
-                    description: Number of items in cache
-                  cache_duration_seconds:
-                    type: integer
-                    description: Cache duration in seconds
-                  cooldown_duration_seconds:
-                    type: integer
-                    description: Account cooldown duration in seconds
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      cache_size:
+                        type: integer
+                      cache_duration_seconds:
+                        type: integer
+                      cooldown_duration_seconds:
+                        type: integer
+                  meta:
+                    type: object
+              example:
+                success: true
+                data:
+                  status: Success
+                  cache_size: 150
+                  cache_duration_seconds: 300
+                  cooldown_duration_seconds: 60
+                meta:
+                  path: /api/v1/data-fetcher/cache/stats
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Failed to get cache stats
   /data-fetcher/cache/clear:
@@ -4723,14 +6147,25 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    enum:
-                    - Success
-                    description: Operation status
-                  message:
-                    type: string
-                    description: Success message
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      message:
+                        type: string
+                  meta:
+                    type: object
+              example:
+                success: true
+                data:
+                  status: Success
+                  message: Cache cleared successfully
+                meta:
+                  path: /api/v1/data-fetcher/cache/clear
+                  timestamp: '2026-01-09T05:34:25.640Z'
         '400':
           description: Failed to clear cache
   /farming/start:
@@ -6661,6 +8096,1150 @@ components:
           type: number
           format: float
           description: Controls randomness in generation (0.0-1.0)
+    SystemOverview:
+      type: object
+      description: System-wide analytics overview
+      properties:
+        total_accounts:
+          type: integer
+          description: Total number of accounts in the system
+        active_accounts:
+          type: integer
+          description: Number of active accounts
+        total_followers:
+          type: integer
+          format: int64
+          description: Sum of all followers across all accounts
+        growing_accounts:
+          type: integer
+          description: Number of accounts with positive growth
+        declining_accounts:
+          type: integer
+          description: Number of accounts losing followers
+        top_growers:
+          type: array
+          items:
+            $ref: '#/GrowthRankItem'
+    GrowthRankItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Account ID in our system
+        username:
+          type: string
+          description: Twitter username
+        profile_image_url:
+          type: string
+          description: Profile image URL
+        followers_count:
+          type: integer
+          description: Current follower count
+        following_count:
+          type: integer
+          description: Current following count
+        tweet_count:
+          type: integer
+          description: Total tweets posted
+        growth:
+          $ref: '#/GrowthPeriodData'
+        trend:
+          $ref: '#/TrendData'
+        engagement_rate:
+          type: number
+          format: double
+          description: Engagement rate percentage
+    DeclineRankItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Account ID in our system
+        username:
+          type: string
+          description: Twitter username
+        profile_image_url:
+          type: string
+          description: Profile image URL
+        followers_count:
+          type: integer
+          description: Current follower count
+        following_count:
+          type: integer
+          description: Current following count
+        tweet_count:
+          type: integer
+          description: Total tweets posted
+        growth:
+          $ref: '#/GrowthPeriodData'
+        trend:
+          $ref: '#/TrendData'
+        engagement_rate:
+          type: number
+          format: double
+          description: Engagement rate percentage
+    GrowthPeriodData:
+      type: object
+      description: Growth data for a specific period
+      properties:
+        followers_diff:
+          type: integer
+          description: Change in followers (can be negative)
+        following_diff:
+          type: integer
+          description: Change in following count
+        tweet_diff:
+          type: integer
+          description: Tweets posted in period
+        period:
+          type: string
+          enum:
+          - 24h
+          - 7d
+          - 30d
+          description: Time period for the data
+    TrendData:
+      type: object
+      nullable: true
+      description: Trend analysis data
+      properties:
+        direction:
+          type: string
+          enum:
+          - accelerating
+          - stable
+          - decelerating
+          - declining
+          description: Overall trend direction
+        velocity_per_day:
+          type: number
+          format: double
+          description: Average followers per day
+        acceleration:
+          type: number
+          format: double
+          description: Change in velocity
+        projected_7d:
+          type: integer
+          description: Projected followers in 7 days
+        projected_30d:
+          type: integer
+          description: Projected followers in 30 days
+    AccountSnapshot:
+      type: object
+      description: Account state at a point in time
+      properties:
+        followers_count:
+          type: integer
+          description: Number of followers
+        following_count:
+          type: integer
+          description: Number of accounts following
+        tweet_count:
+          type: integer
+          description: Total tweets
+        favourites_count:
+          type: integer
+          description: Total likes given
+        collected_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when data was collected
+        listed_count:
+          type: integer
+          description: Number of lists account is on
+        media_count:
+          type: integer
+          description: Number of media items posted
+        is_blue_verified:
+          type: boolean
+          description: Twitter Blue subscription status
+        follow_ratio:
+          type: number
+          format: double
+          description: followers_count / following_count
+    AccountGrowthData:
+      type: object
+      description: Change in metrics over a period
+      properties:
+        followers_diff:
+          type: integer
+          description: Change in followers (can be negative)
+        following_diff:
+          type: integer
+          description: Change in following count
+        tweet_diff:
+          type: integer
+          description: Tweets posted in period
+        favourites_diff:
+          type: integer
+          description: Likes given in period
+        time_diff_seconds:
+          type: integer
+          format: int64
+          description: Period duration in seconds
+    TweetMetricsSnapshot:
+      type: object
+      description: Performance metrics from recent tweets
+      properties:
+        collected_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when data was collected
+        sample_size:
+          type: integer
+          description: Number of tweets analyzed
+        total_likes:
+          type: integer
+          format: int64
+          description: Sum of all likes
+        total_retweets:
+          type: integer
+          format: int64
+          description: Sum of all retweets
+        total_replies:
+          type: integer
+          format: int64
+          description: Sum of all replies
+        total_views:
+          type: integer
+          format: int64
+          description: Sum of all views
+        avg_likes:
+          type: number
+          format: double
+          description: Average likes per tweet
+        avg_retweets:
+          type: number
+          format: double
+          description: Average retweets per tweet
+        avg_replies:
+          type: number
+          format: double
+          description: Average replies per tweet
+        avg_views:
+          type: number
+          format: double
+          description: Average views per tweet
+        engagement_rate:
+          type: number
+          format: double
+          description: (likes + retweets + replies) / views * 100
+        best_tweet_id:
+          type: integer
+          format: int64
+          description: Tweet ID with most likes
+        worst_tweet_id:
+          type: integer
+          format: int64
+          description: Tweet ID with least likes
+        best_tweet_likes:
+          type: integer
+          format: int64
+          description: Likes on best tweet
+        worst_tweet_likes:
+          type: integer
+          format: int64
+          description: Likes on worst tweet
+    GrowthTrend:
+      type: object
+      description: Trend analysis and projections
+      properties:
+        direction:
+          type: string
+          enum:
+          - accelerating
+          - stable
+          - decelerating
+          - declining
+          description: Overall trend direction
+        velocity_7d:
+          type: number
+          format: double
+          description: Average daily growth last 7 days
+        velocity_prev_7d:
+          type: number
+          format: double
+          description: Average daily growth previous 7 days
+        acceleration:
+          type: number
+          format: double
+          description: velocity_7d - velocity_prev_7d
+        projected_7d:
+          type: integer
+          description: Projected followers in 7 days
+        projected_30d:
+          type: integer
+          description: Projected followers in 30 days
+    PeriodSummary:
+      type: object
+      description: Summary for a specific time period
+      properties:
+        period:
+          type: string
+          enum:
+          - daily
+          - weekly
+          - monthly
+          description: Period type
+        period_start:
+          type: integer
+          format: int64
+          description: Period start (Unix timestamp)
+        period_end:
+          type: integer
+          format: int64
+          description: Period end (Unix timestamp)
+        start_followers:
+          type: integer
+          description: Followers at period start
+        end_followers:
+          type: integer
+          description: Followers at period end
+        followers_change:
+          type: integer
+          description: Net change
+        followers_change_pct:
+          type: number
+          format: double
+          description: Percentage change
+        tweets_posted:
+          type: integer
+          description: Tweets posted in period
+        avg_daily_growth:
+          type: number
+          format: double
+          description: Average daily follower change
+    HistoryPoint:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp
+        followers:
+          type: integer
+          description: Follower count at this time
+    AccountDashboard:
+      type: object
+      description: Complete analytics dashboard for an account
+      properties:
+        id:
+          type: integer
+          description: Account ID in our system
+        username:
+          type: string
+          description: Current username
+        profile_image_url:
+          type: string
+          description: Profile image URL
+        generated_at:
+          type: integer
+          format: int64
+          description: When dashboard was generated (Unix timestamp)
+        current:
+          $ref: '#/AccountSnapshot'
+        growth_24h:
+          $ref: '#/AccountGrowthData'
+        growth_7d:
+          $ref: '#/AccountGrowthData'
+        growth_30d:
+          $ref: '#/AccountGrowthData'
+        today:
+          $ref: '#/PeriodSummary'
+        this_week:
+          $ref: '#/PeriodSummary'
+        this_month:
+          $ref: '#/PeriodSummary'
+        trend:
+          $ref: '#/GrowthTrend'
+        tweet_metrics:
+          $ref: '#/TweetMetricsSnapshot'
+        daily_history:
+          type: array
+          items:
+            $ref: '#/HistoryPoint'
+    ComparisonResult:
+      type: object
+      description: Result of comparing multiple accounts
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/AccountDashboard'
+        best_grower_id:
+          type: integer
+          description: Account ID with best growth
+        best_engagement_id:
+          type: integer
+          description: Account ID with best engagement
+    AnalyticsAccountItem:
+      type: object
+      description: Account summary with detailed analytics data
+      properties:
+        id:
+          type: integer
+          description: Account ID in our system
+        username:
+          type: string
+          description: Twitter username
+        profile_image_url:
+          type: string
+          description: Profile image URL
+        followers_count:
+          type: integer
+          description: Current follower count
+        following_count:
+          type: integer
+          description: Current following count
+        tweet_count:
+          type: integer
+          description: Total tweets posted by account
+        growth:
+          $ref: '#/GrowthPeriodData'
+        trend:
+          $ref: '#/TrendData'
+        tweet_metrics:
+          type: object
+          nullable: true
+          description: Tweet performance metrics (null if no data)
+          properties:
+            total_likes:
+              type: integer
+              format: int64
+              description: Sum of all likes on recent tweets
+            total_retweets:
+              type: integer
+              format: int64
+              description: Sum of all retweets
+            total_views:
+              type: integer
+              format: int64
+              description: Sum of all views
+            avg_likes:
+              type: number
+              format: double
+              description: Average likes per tweet
+            avg_retweets:
+              type: number
+              format: double
+              description: Average retweets per tweet
+            engagement_rate:
+              type: number
+              format: double
+              description: Engagement rate percentage ((likes + retweets + replies) / views * 100)
+            sample_size:
+              type: integer
+              description: Number of tweets analyzed
+            best_tweet_id:
+              type: integer
+              format: int64
+              description: Tweet ID with most likes
+            best_tweet_likes:
+              type: integer
+              format: int64
+              description: Like count of the best performing tweet
+    AutoReplyRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique rule ID
+          example: 1
+        name:
+          type: string
+          description: Rule name for identification
+          example: Welcome Message
+        trigger_type:
+          type: integer
+          description: Type of trigger (0=MENTION, 1=DM)
+          enum:
+          - 0
+          - 1
+          example: 1
+        trigger_pattern:
+          type: string
+          description: Pattern to match (keyword, regex, etc.)
+          example: hello|hi|hey
+        response_template:
+          type: string
+          description: Response template with placeholders
+          example: Hello {username}, thanks for reaching out!
+        enabled:
+          type: boolean
+          description: Whether the rule is active
+          default: true
+        priority:
+          type: integer
+          description: Rule priority (higher = processed first)
+          default: 0
+        cooldown_seconds:
+          type: integer
+          description: Minimum seconds between responses to same user
+          default: 3600
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when rule was created
+        updated_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when rule was last updated
+        match_mode:
+          type: integer
+          description: Match mode (0=CONTAINS, 1=EXACT, 2=REGEX)
+          enum:
+          - 0
+          - 1
+          - 2
+          default: 0
+        case_sensitive:
+          type: boolean
+          description: Whether matching is case-sensitive
+          default: false
+        trigger_keywords:
+          type: array
+          items:
+            type: string
+          description: List of keywords to match (OR logic)
+          example:
+          - hello
+          - hi
+          - hey
+        response_variants:
+          type: array
+          items:
+            type: string
+          description: Alternative responses (randomly selected)
+          example:
+          - Hi there!
+          - Hello!
+          - Hey!
+        ai_instruction:
+          type: string
+          description: Instruction for AI-generated responses
+          example: Respond in a friendly, helpful manner
+        mark_as_read:
+          type: boolean
+          description: Mark DM as read after processing
+          default: true
+        response_mode:
+          type: integer
+          description: Response mode (0=TEMPLATE, 1=AI, 2=HYBRID)
+          enum:
+          - 0
+          - 1
+          - 2
+          default: 0
+      description: 'Auto-reply rule defining trigger conditions and response behavior.
+
+
+        **Trigger Types:**
+
+        - 0 (MENTION): Reply to mentions
+
+        - 1 (DM): Reply to direct messages
+
+
+        **Match Modes:**
+
+        - 0 (CONTAINS): Message contains the pattern
+
+        - 1 (EXACT): Exact match
+
+        - 2 (REGEX): Regular expression match
+
+
+        **Response Modes:**
+
+        - 0 (TEMPLATE): Use response_template with placeholders
+
+        - 1 (AI): Use ai_instruction for AI generation
+
+        - 2 (HYBRID): Template + AI enhancement'
+    AutoReplyRuleRequest:
+      type: object
+      required:
+      - name
+      - trigger_type
+      - response_template
+      properties:
+        name:
+          type: string
+          description: Rule name
+        trigger_type:
+          type: integer
+          description: Type of trigger (0=MENTION, 1=DM)
+        trigger_pattern:
+          type: string
+          description: Pattern to match
+        response_template:
+          type: string
+          description: Response template with placeholders
+        enabled:
+          type: boolean
+          default: true
+        priority:
+          type: integer
+          default: 0
+        cooldown_seconds:
+          type: integer
+          default: 3600
+        match_mode:
+          type: integer
+          default: 0
+        case_sensitive:
+          type: boolean
+          default: false
+        trigger_keywords:
+          type: array
+          items:
+            type: string
+        response_variants:
+          type: array
+          items:
+            type: string
+        ai_instruction:
+          type: string
+        mark_as_read:
+          type: boolean
+          default: true
+        response_mode:
+          type: integer
+          default: 0
+    AutoReplyLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique log ID
+        account_id:
+          type: integer
+          description: Account that processed the event
+        event_type:
+          type: string
+          description: Type of event (mention_reply, dm_reply)
+          enum:
+          - mention_reply
+          - dm_reply
+        trigger_id:
+          type: string
+          description: Tweet ID or DM ID that triggered
+        trigger_user:
+          type: string
+          description: Username who triggered
+        trigger_text:
+          type: string
+          description: Original text that triggered
+        rule_id:
+          type: integer
+          description: ID of the matched rule
+        response_text:
+          type: string
+          description: Response that was sent
+        status:
+          type: string
+          description: Result status
+          enum:
+          - success
+          - failed
+          - skipped
+          - rate_limited
+        error_message:
+          type: string
+          description: Error details if failed
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp of the event
+    AutoReplyState:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: State record ID
+        account_id:
+          type: integer
+          description: Associated account ID
+        last_mention_id:
+          type: string
+          description: Last processed mention tweet ID
+        last_dm_cursor:
+          type: string
+          description: DM inbox cursor for pagination
+        last_poll_time:
+          type: integer
+          format: int64
+          description: Last successful poll timestamp
+        is_active:
+          type: boolean
+          description: Whether account is active in the bot
+        created_at:
+          type: integer
+          format: int64
+        updated_at:
+          type: integer
+          format: int64
+    AutoReplyStats:
+      type: object
+      properties:
+        total_mentions_processed:
+          type: integer
+          description: Total mentions processed
+          example: 150
+        total_dms_processed:
+          type: integer
+          description: Total DMs processed
+          example: 75
+        total_replies_sent:
+          type: integer
+          description: Total replies sent
+          example: 200
+        total_errors:
+          type: integer
+          description: Total errors encountered
+          example: 5
+        last_activity:
+          type: integer
+          format: int64
+          description: Timestamp of last activity
+        is_running:
+          type: boolean
+          description: Whether the bot is currently running
+    AutoReplyGlobalConfig:
+      type: object
+      properties:
+        poll_interval_seconds:
+          type: integer
+          description: Interval between polls in seconds
+          default: 60
+          minimum: 10
+          maximum: 3600
+        max_accounts_per_poll:
+          type: integer
+          description: Maximum accounts to process in each poll cycle
+          default: 10
+          minimum: 1
+          maximum: 100
+        log_all_events:
+          type: boolean
+          description: Log all auto-reply events
+          default: true
+        max_log_entries:
+          type: integer
+          description: Maximum number of log entries to keep
+          default: 10000
+          minimum: 100
+          maximum: 100000
+      description: 'Global AutoReply bot configuration
+
+
+        Controls overall bot behavior, polling intervals, and logging settings.'
+    DMResponseMode:
+      type: integer
+      description: DM response mode
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      x-enum-descriptions:
+        0: TEMPLATE - Use static response templates
+        1: AI_ENHANCED - Template with AI enhancements
+        2: FULL_AI - Fully AI-generated responses
+        3: HYBRID - Mix of template and AI
+    DMResponseConfig:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/DMResponseMode'
+          default: 0
+        ai_system_prompt:
+          type: string
+          description: Custom AI system prompt for DM responses
+          example: You are a helpful assistant. Respond in a friendly and professional manner.
+        max_response_length:
+          type: integer
+          description: Maximum response length in characters
+          default: 280
+          minimum: 10
+          maximum: 10000
+        maintain_conversation_tone:
+          type: boolean
+          description: Maintain tone of incoming message
+          default: true
+        use_emoji:
+          type: boolean
+          description: Include emojis in responses
+          default: true
+        language_override:
+          type: string
+          description: Force responses in specific language (ISO 639-1 code)
+          example: en
+        conversation_history_depth:
+          type: integer
+          description: Number of previous messages to include in context
+          default: 5
+          minimum: 0
+          maximum: 50
+      description: 'Configuration for DM response generation
+
+
+        Controls how responses are generated (template vs AI), tone, length, and conversation context.'
+    DMUserFilterConfig:
+      type: object
+      properties:
+        whitelist_enabled:
+          type: boolean
+          description: Enable whitelist (only respond to whitelisted users)
+          default: false
+        whitelist_usernames:
+          type: array
+          items:
+            type: string
+          description: List of whitelisted usernames
+          example:
+          - trusted_user1
+          - vip_user
+        whitelist_user_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: List of whitelisted user IDs
+          example:
+          - 12345678
+          - 87654321
+        blacklist_usernames:
+          type: array
+          items:
+            type: string
+          description: List of blocked usernames
+          example:
+          - spam_user
+          - blocked_user
+        blacklist_user_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: List of blocked user IDs
+          example:
+          - 98765432
+        blacklist_bio_keywords:
+          type: array
+          items:
+            type: string
+          description: Keywords in user bio that trigger blocking
+          example:
+          - bot
+          - crypto
+          - spam
+        min_follower_count:
+          type: integer
+          description: Minimum follower count to respond to
+          default: 0
+          minimum: 0
+        min_account_age_days:
+          type: integer
+          description: Minimum account age in days to respond to
+          default: 0
+          minimum: 0
+        block_new_accounts:
+          type: boolean
+          description: Block responses to accounts created less than min_account_age_days
+          default: false
+        block_no_profile_pic:
+          type: boolean
+          description: Block responses to users without profile pictures
+          default: false
+        block_no_bio:
+          type: boolean
+          description: Block responses to users without bio
+          default: false
+        block_suspicious_usernames:
+          type: boolean
+          description: Block responses to users with suspicious username patterns
+          default: false
+        max_messages_per_user_per_day:
+          type: integer
+          description: Maximum messages to send to a single user per day
+          default: 10
+          minimum: 1
+          maximum: 100
+        block_repeated_messages:
+          type: boolean
+          description: Block responses to duplicate messages from same user
+          default: true
+      description: 'User filtering configuration for DMs
+
+
+        Controls which users receive auto-replies based on whitelist/blacklist, account age, follower count, and suspicious
+        indicators.'
+    DMDelayConfig:
+      type: object
+      properties:
+        min_typing_delay_ms:
+          type: integer
+          description: Minimum delay before sending (milliseconds)
+          default: 500
+          minimum: 0
+          maximum: 60000
+        max_typing_delay_ms:
+          type: integer
+          description: Maximum delay before sending (milliseconds)
+          default: 3000
+          minimum: 0
+          maximum: 120000
+        chars_per_second:
+          type: integer
+          description: Simulated typing speed (characters per second)
+          default: 5
+          minimum: 1
+          maximum: 20
+        simulate_typing_indicator:
+          type: boolean
+          description: Simulate typing indicator before sending
+          default: true
+        add_random_jitter:
+          type: boolean
+          description: Add random variation to delays
+          default: true
+        respect_quiet_hours:
+          type: boolean
+          description: Don't send during quiet hours
+          default: true
+        quiet_hours_start:
+          type: integer
+          description: Quiet hours start (hour in 24h format, 0-23)
+          default: 23
+          minimum: 0
+          maximum: 23
+        quiet_hours_end:
+          type: integer
+          description: Quiet hours end (hour in 24h format, 0-23)
+          default: 8
+          minimum: 0
+          maximum: 23
+        quiet_hours_delay_minutes:
+          type: integer
+          description: Additional delay when received during quiet hours (minutes)
+          default: 30
+          minimum: 0
+          maximum: 720
+      description: 'Delay configuration for DM responses
+
+
+        Adds human-like delays, typing simulation, and respects quiet hours.
+
+
+        **Quiet Hours:**
+
+        Time range (in 24h format) when DMs are not auto-replied. Messages received during quiet hours will be delayed by
+        quiet_hours_delay_minutes.'
+    AutoReplyAccountConfig:
+      type: object
+      properties:
+        account_id:
+          type: integer
+          description: Twitter account ID (0 = global default config)
+          example: 123
+        enabled:
+          type: boolean
+          description: Enable auto-reply for this account
+          default: false
+        max_replies_per_hour:
+          type: integer
+          description: Maximum replies per hour for this account
+          default: 10
+          minimum: 1
+          maximum: 100
+        cooldown_per_user_seconds:
+          type: integer
+          description: Cooldown period for same user (seconds)
+          default: 3600
+          minimum: 0
+          maximum: 86400
+        min_reply_delay_seconds:
+          type: integer
+          description: Minimum delay between replies (seconds)
+          default: 3
+          minimum: 0
+          maximum: 300
+        max_reply_delay_seconds:
+          type: integer
+          description: Maximum delay between replies (seconds)
+          default: 5
+          minimum: 0
+          maximum: 300
+        max_dm_messages_per_hour:
+          type: integer
+          description: Maximum DMs to process per hour
+          default: 200
+          minimum: 1
+          maximum: 1000
+        max_mentions_per_hour:
+          type: integer
+          description: Maximum mentions to process per hour
+          default: 50
+          minimum: 1
+          maximum: 500
+        dm_poll_interval_seconds:
+          type: integer
+          description: DM polling interval in seconds
+          default: 10
+          minimum: 5
+          maximum: 300
+        mention_poll_interval_seconds:
+          type: integer
+          description: Mention polling interval in seconds
+          default: 10
+          minimum: 5
+          maximum: 300
+        reply_to_mentions:
+          type: boolean
+          description: Enable mention auto-reply
+          default: true
+        reply_to_dms:
+          type: boolean
+          description: Enable DM auto-reply
+          default: true
+        require_rule_match:
+          type: boolean
+          description: Only reply if a rule matches (false = reply to all)
+          default: true
+        min_account_age_days:
+          type: integer
+          description: Minimum target account age in days
+          default: 0
+          minimum: 0
+        skip_verified_accounts:
+          type: boolean
+          description: Skip auto-replying to verified accounts
+          default: false
+        skip_protected_accounts:
+          type: boolean
+          description: Skip auto-replying to protected accounts
+          default: true
+        dm_response_config:
+          $ref: '#/components/schemas/DMResponseConfig'
+        user_filter_config:
+          $ref: '#/components/schemas/DMUserFilterConfig'
+        delay_config:
+          $ref: '#/components/schemas/DMDelayConfig'
+        enable_ai_responses:
+          type: boolean
+          description: Enable AI-generated responses
+          default: false
+        default_ai_system_prompt:
+          type: string
+          description: Default AI system prompt for this account
+          example: You are a customer support bot for our company. Be helpful and professional.
+        ai_timeout_seconds:
+          type: integer
+          description: AI response generation timeout
+          default: 30
+          minimum: 5
+          maximum: 120
+        fallback_to_template_on_ai_error:
+          type: boolean
+          description: Use template response if AI generation fails
+          default: true
+        max_conversation_context_messages:
+          type: integer
+          description: Maximum number of messages to include in conversation context
+          default: 10
+          minimum: 0
+          maximum: 100
+        track_conversation_state:
+          type: boolean
+          description: Track conversation state for context-aware responses
+          default: true
+        conversation_timeout_hours:
+          type: integer
+          description: Hours of inactivity before conversation is considered stale
+          default: 24
+          minimum: 1
+          maximum: 168
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when config was created
+        updated_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when config was last updated
+      required:
+      - account_id
+      description: 'Per-account AutoReply configuration
+
+
+        Each account can have its own configuration for rate limiting, response modes, AI settings, user filtering, and delays.
+        All fields except account_id are optional and will inherit from global config if not set.'
+    PendingDMMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique message queue ID
+        account_id:
+          type: integer
+          description: Account processing this message
+        message_id:
+          type: string
+          description: Twitter DM message ID
+        conversation_id:
+          type: string
+          description: Twitter conversation ID
+        sender_id:
+          type: string
+          description: Sender user ID (as string)
+        sender_username:
+          type: string
+          description: Sender username
+        text:
+          type: string
+          description: Message text content
+        received_at:
+          type: integer
+          format: int64
+          description: When message was received (timestamp)
+        created_at:
+          type: integer
+          format: int64
+          description: When added to queue (timestamp)
+        status:
+          type: integer
+          description: Processing status (0=PENDING, 1=PROCESSING, 2=COMPLETED, 3=FAILED, 4=SKIPPED)
+          enum:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+        error_message:
+          type: string
+          description: Error message if failed
+        retry_count:
+          type: integer
+          description: Number of retry attempts
+          default: 0
+      description: 'Pending DM message in the processing queue.
+
+
+        **Status Values:**
+
+        - 0 (PENDING): Waiting to be processed
+
+        - 1 (PROCESSING): Currently being processed
+
+        - 2 (COMPLETED): Successfully replied
+
+        - 3 (FAILED): Failed after max retries
+
+        - 4 (SKIPPED): Skipped (no rule match, cooldown, etc.)'
     BatchOperation:
       type: object
       description: Batch operation summary
@@ -6697,6 +9276,7 @@ components:
           - REPORT_USER
           - SET_PROTECTED
           - SET_LANGUAGES
+          - SEND_MESSAGE
           description: Type of batch operation
         status:
           type: string
@@ -6758,6 +9338,7 @@ components:
           - REPORT_USER
           - SET_PROTECTED
           - SET_LANGUAGES
+          - SEND_MESSAGE
           description: Type of operation to perform
         account_ids:
           type: array
@@ -6858,7 +9439,10 @@ components:
 
             - SET_PROTECTED: { "protected": boolean }
 
-            - SET_LANGUAGES: { "languages": ["en", "tr"], "primary_language": "en" (optional) } '
+            - SET_LANGUAGES: { "languages": ["en", "tr"], "primary_language": "en" (optional) }
+
+            - SEND_MESSAGE: { "user_id": "string" OR "username": "string", "text": "string", "media_id": "string" (optional)
+            } '
         delay_ms:
           type: integer
           minimum: 0
@@ -6919,6 +9503,7 @@ components:
           - REPORT_USER
           - SET_PROTECTED
           - SET_LANGUAGES
+          - SEND_MESSAGE
         status:
           type: string
           enum:
